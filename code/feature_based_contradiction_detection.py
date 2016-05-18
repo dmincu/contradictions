@@ -154,7 +154,7 @@ def get_percentage_count_label(premise_parse, hypothesis_parse, label):
 
 def get_counts_for_unigrams(sentence):
     counts = defaultdict(int)
-    for word in sentence.split():
+    for word in re.findall(r"\w+", sentence):
         counts[word.lower()] += 1
     return counts
 
@@ -324,8 +324,11 @@ def make_feature_list_for_pair(entry):
     })
 
 
-def mark_idicator_functions(df, entry):
-    print entry['unigrams']
+def mark_idicator_functions(entry):
+    for word in entry['unigrams'].keys():
+        if word in entry:
+            entry[word] = 1
+    return entry
 
 
 def make_feature_dataframe(df):
@@ -370,8 +373,6 @@ def make_feature_dataframe_extended(df_train, df):
         keys.sort()
         for key in keys:
             df[key] = 0
-
-    print df.columns
 
     df_features = df.apply(mark_idicator_functions, axis=1)
 
@@ -577,6 +578,10 @@ def get_class_SVM(entry, train_summary):
 
 def classify_and_compute_accuracy_svm(train_df, test_df):
     df_features_train = make_feature_dataframe_extended(train_df, train_df)
+    df_features_test = make_feature_dataframe_extended(train_df, test_df)
+
+    print df_features_train
+    print df_features_test
 
 
 if __name__ == '__main__':
@@ -676,4 +681,4 @@ if __name__ == '__main__':
     print df_test.shape
 
     # classify_and_compute_accuracy_simple(df_features_train, df_features_test, 1)
-    classify_and_compute_accuracy_svm(df_features_train, df_features_test)
+    classify_and_compute_accuracy_svm(df_features_train[:][:1], df_features_test[:][:1])
