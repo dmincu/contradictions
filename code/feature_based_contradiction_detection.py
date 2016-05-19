@@ -677,15 +677,17 @@ if __name__ == '__main__':
     try:
         opts, args = getopt.getopt(
             sys.argv[1:],
-            'm:ni:no:',
+            'm:',
             [
+                'ni=',
+                'no=',
                 'print_garbage',
                 'use_file'
             ]
         )
     except getopt.GetoptError:
         print(
-            'test.py -m <method> -ni <no_input> -no <no_output>' +
+            'test.py -m <method> --ni <no_input> --no <no_output>' +
             ' [--print_garbage, --use_file]' +
             ', where method [classic, svm, nb]',
             file=FILE
@@ -701,9 +703,9 @@ if __name__ == '__main__':
     for opt, arg in opts:
         if opt == '-m':
             method = arg
-        elif opt == 'ni':
+        elif opt == '--ni':
             ni = int(arg)
-        elif opt == 'no':
+        elif opt == '--no':
             no = int(arg)
         elif opt == '--print_garbage':
             print_garbage = True
