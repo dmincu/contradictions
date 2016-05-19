@@ -333,8 +333,26 @@ def make_feature_list_for_pair(entry):
     })
 
 
-def mark_idicator_functions(entry):
+def mark_idicator_functions_unigrams(entry):
     for word in entry['unigrams'].keys():
+        if word in entry:
+            entry[word] = 1
+    return entry
+
+def mark_idicator_functions_bigrams(entry):
+    for word in entry['bigrams'].keys():
+        if word in entry:
+            entry[word] = 1
+    return entry
+
+def mark_idicator_functions_cross_unigrams(entry):
+    for word in entry['cross_unigrams'].keys():
+        if word in entry:
+            entry[word] = 1
+    return entry
+
+def mark_idicator_functions_cross_bigrams(entry):
+    for word in entry['cross_bigrams'].keys():
         if word in entry:
             entry[word] = 1
     return entry
@@ -376,14 +394,35 @@ def make_feature_dataframe_extended(df_train, df):
         'cross_bigrams'
     ]
 
-    for field in fields:
+    fields_to_use = [
+    ]
+
+    for field in fields_to_use:
         sum_dict = sum_dataframe_dict_no_total(df_train, field)
         keys = sum_dict.keys()
         keys.sort()
         for key in keys:
             df[key] = 0
 
-    df_features = df.apply(mark_idicator_functions, axis=1)
+    df_features = df
+
+    if 'unigrams' in fields_to_use:
+        df_features = df.apply(mark_idicator_functions_unigrams, axis=1)
+    if 'bigrams' in fields_to_use:
+        df_features = df_features.apply(
+            mark_idicator_functions_bigrams,
+            axis=1
+        )
+    if 'cross_unigrams' in fields_to_use:
+        df_features = df_features.apply(
+            mark_idicator_functions_cross_unigrams,
+            axis=1
+        )
+    if 'cross_bigrams' in fields_to_use:
+        df_features = df_features.apply(
+            mark_idicator_functions_cross_bigrams,
+            axis=1
+        )
 
     for field in fields:
         df_features = df_features.drop(field, 1)
@@ -686,8 +725,8 @@ if __name__ == '__main__':
     method = 'svm'
     print_garbage = False
     use_file = False
-    ni = 100
-    no = 15
+    ni = 10
+    no = 100
 
     for opt, arg in opts:
         if opt == '-m':
