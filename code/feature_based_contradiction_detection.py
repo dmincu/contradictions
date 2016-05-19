@@ -634,12 +634,6 @@ def classify_and_compute_accuracy_svm(train_df, test_df):
         '-': 3,
         'entailment': 4
     }
-    reverse_labels = {
-        1: 'contradiction',
-        2: 'neutral',
-        3: '-',
-        4: 'entailment'
-    }
     df_features_train['gold_label'] = df_features_train['gold_label'].apply(
         lambda x: labels[x]
     )
@@ -664,12 +658,7 @@ def classify_and_compute_accuracy_svm(train_df, test_df):
     # Compare results and compute accuracy
     print(results, file=FILE)
     print(y_test, file=FILE)
-
-    count = 0
-    for result, target in itertools.izip(results, y_test):
-        if result == target:
-            count += 1
-    print(count, file=FILE)
+    print(clf.score(X_test, y_test) * 100.0, file=FILE)
 
 
 if __name__ == '__main__':
@@ -698,7 +687,7 @@ if __name__ == '__main__':
     print_garbage = False
     use_file = False
     ni = 100
-    no = 10
+    no = 15
 
     for opt, arg in opts:
         if opt == '-m':
