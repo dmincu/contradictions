@@ -1,11 +1,19 @@
+from __future__ import print_function
+
 import csv
+import getopt
+import itertools
 import numpy as np
 import pandas as pd
 import re
+import simplejson
+import sys
+import time
 
 from collections import defaultdict
 from itertools import islice, izip
 from nltk.translate import bleu_score
+from sklearn import svm
 
 FULL_CSV_PATH_DEV = '../dataset/snli_1.0/snli_1.0_dev.txt'
 FULL_CSV_PATH_TRAIN = '../dataset/snli_1.0/snli_1.0_train.txt'
@@ -16,6 +24,7 @@ NOUN = ['NN', 'NNS', 'NNP', 'NNPS']
 VERB = ['VB', 'VBD', 'VBP', 'VBG', 'VBN', 'VBZ']
 ADVERB = ['RB', 'RBR', 'RBS']
 
+FILE = sys.stdout
 
 #
 # Helper functions
@@ -500,7 +509,7 @@ def get_class(entry, classes):
     return result_class
 
 
-def classify_and_compute_accuracy_simple(train_df, test_df, method):
+def classify_and_compute_accuracy_simple(train_df, test_df):
     labels = ['contradiction', 'neutral', '-', 'entailment']
 
     # Split the train dataset for simpler prediction in the classifier
@@ -512,6 +521,13 @@ def classify_and_compute_accuracy_simple(train_df, test_df, method):
     train_undecideds = get_dataframe_subset_for_label(train_df, '-')
     train_entailments = get_dataframe_subset_for_label(train_df, 'entailment')
 
+    train_set = [
+        train_contradictions,
+        train_independents,
+        train_undecideds,
+        train_entailments
+    ]
+
     # Split the test dataset for simpler computation of accuracy
     test_contradictions = get_dataframe_subset_for_label(
         test_df,
@@ -520,6 +536,13 @@ def classify_and_compute_accuracy_simple(train_df, test_df, method):
     test_independents = get_dataframe_subset_for_label(test_df, 'neutral')
     test_undecideds = get_dataframe_subset_for_label(test_df, '-')
     test_entailments = get_dataframe_subset_for_label(test_df, 'entailment')
+
+    test_set = [
+        test_contradictions,
+        test_independents,
+        test_undecideds,
+        test_entailments
+    ]
 
     # Summarize the classes
     train_contradictions_summary = summarize_dataframe_per_feature(
@@ -535,150 +558,344 @@ def classify_and_compute_accuracy_simple(train_df, test_df, method):
         train_entailments
     )
 
-    print 'Testing for training set contradictions'
-    count = 0
-    for index, row in train_contradictions.iterrows():
-        label = labels[get_class(
-            row,
-            [
-                train_contradictions_summary,
-                train_independents_summary,
-                train_undecideds_summary,
-                train_entailments_summary
-            ],
-            method
-        )]
-        # print label
-        if label == row['gold_label']:
-            count += 1
-    print count * 100.0 / train_contradictions.shape[0]
+    print('Testing for training set contradictions', file=FILE)
+    index_label = 0
+    total_count = 0
+    for train_set_elem in train_set:
+        count = 0
+        print('\tFor ' + labels[index_label], file=FILE)
+        for index, row in train_set_elem.iterrows():
+            label = labels[get_class(
+                row,
+                [
+                    train_contradictions_summary,
+                    train_independents_summary,
+                    train_undecideds_summary,
+                    train_entailments_summary
+                ]
+            )]
+            # print label
+            if label == row['gold_label']:
+                count += 1
+        total_count += count
+        if train_set_elem.shape[0] == 0:
+            print(100, file=FILE)
+        else:
+            print(count * 100.0 / train_set_elem.shape[0], file=FILE)
+        index_label += 1
+    print(
+        'Total accuracy: ' + str(total_count * 100.0 / train_df.shape[0]),
+        file=FILE
+    )
 
-    print '\n'
+    print('\n', file=FILE)
 
-    print 'Testing for test set contradictions'
-    count = 0
-    for index, row in test_contradictions.iterrows():
-        label = labels[get_class(
-            row,
-            [
-                train_contradictions_summary,
-                train_independents_summary,
-                train_undecideds_summary,
-                train_entailments_summary
-            ]
-        )]
-        if label == row['gold_label']:
-            count += 1
-    print count * 100.0 / test_contradictions.shape[0]
-
-
-def get_class_SVM(entry, train_summary):
-    return 0
+    print('Testing for test set contradictions', file=FILE)
+    index_label = 0
+    total_count = 0
+    for test_set_elem in test_set:
+        count = 0
+        print('\tFor ' + labels[index_label], file=FILE)
+        for index, row in test_set_elem.iterrows():
+            label = labels[get_class(
+                row,
+                [
+                    train_contradictions_summary,
+                    train_independents_summary,
+                    train_undecideds_summary,
+                    train_entailments_summary
+                ]
+            )]
+            if label == row['gold_label']:
+                count += 1
+        total_count += count
+        if test_set_elem.shape[0] == 0:
+            print(100, file=FILE)
+        else:
+            print(count * 100.0 / test_set_elem.shape[0], file=FILE)
+        index_label += 1
+    print(
+        'Total accuracy: ' + str(total_count * 100.0 / test_df.shape[0]),
+        file=FILE
+    )
 
 
 def classify_and_compute_accuracy_svm(train_df, test_df):
     df_features_train = make_feature_dataframe_extended(train_df, train_df)
     df_features_test = make_feature_dataframe_extended(train_df, test_df)
 
-    print df_features_train
-    print df_features_test
+    # Create SVM classifier
+    clf = svm.SVC()
+
+    # Convert the targets to float
+    labels = {
+        'contradiction': 1,
+        'neutral': 2,
+        '-': 3,
+        'entailment': 4
+    }
+    reverse_labels = {
+        1: 'contradiction',
+        2: 'neutral',
+        3: '-',
+        4: 'entailment'
+    }
+    df_features_train['gold_label'] = df_features_train['gold_label'].apply(
+        lambda x: labels[x]
+    )
+    df_features_test['gold_label'] = df_features_test['gold_label'].apply(
+        lambda x: labels[x]
+    )
+
+    # Train it on the data
+    y_train = df_features_train['gold_label'].values
+    df_features_train.drop('gold_label', axis=1)
+    X_train = df_features_train.values
+    clf.fit(X_train, y_train)
+
+    print(clf, file=FILE)
+
+    # Start predicting
+    y_test = df_features_test['gold_label'].values
+    df_features_test.drop('gold_label', axis=1)
+    X_test = df_features_test.values
+    results = clf.predict(df_features_test)
+
+    # Compare results and compute accuracy
+    print(results, file=FILE)
+    print(y_test, file=FILE)
+
+    count = 0
+    for result, target in itertools.izip(results, y_test):
+        if result == target:
+            count += 1
+    print(count, file=FILE)
 
 
 if __name__ == '__main__':
+    # Parse command line arguments
+    try:
+        opts, args = getopt.getopt(
+            sys.argv[1:],
+            'm:ni:no:',
+            [
+                'print_garbage',
+                'use_file'
+            ]
+        )
+    except getopt.GetoptError:
+        print(
+            'test.py -m <method> -ni <no_input> -no <no_output>' +
+            ' [--print_garbage, --use_file]' +
+            ', where method [classic, svm, nb]',
+            file=FILE
+        )
+        sys.exit(2)
+
+    method = 'svm'
+    print_garbage = False
+    use_file = False
+    ni = 100
+    no = 10
+
+    for opt, arg in opts:
+        if opt == '-m':
+            method = arg
+        elif opt == 'ni':
+            ni = int(arg)
+        elif opt == 'no':
+            no = int(arg)
+        elif opt == '--print_garbage':
+            print_garbage = True
+        elif opt == '--use_file':
+            use_file = True
+
+    # Open output file
+    if use_file:
+        FILE = open(
+            '../results/' + time.strftime("%d_%m_%Y_%H_%M_%S") +
+            '_' + method + '.txt',
+            'w'
+        )
+
+    # Do the magic
     # TODO: change to train set once everything is developed. Dev set has only
     # a tiny amount of pairs.
     df_train = get_dataframe_from_csv(FULL_CSV_PATH_DEV)
     df_test = get_dataframe_from_csv(FULL_CSV_PATH_TEST)
 
-    print 'POS tags for sentence test'
-    tagged_words = get_POStags_for_sentence(
-        df_test['sentence1_parse'][1]
-    )
-    print tagged_words
-    print '\n'
+    if print_garbage:
+        print('POS tags for sentence test', file=FILE)
+        tagged_words = get_POStags_for_sentence(
+            df_test['sentence1_parse'][1]
+        )
+        print(tagged_words, file=FILE)
+        print('\n', file=FILE)
 
-    print 'Counts for unigrams'
-    counts = get_counts_for_unigrams(
-        df_test['sentence1'][1]
-    )
-    print counts
-    print '\n'
+        print('Counts for unigrams', file=FILE)
+        counts = get_counts_for_unigrams(
+            df_test['sentence1'][1]
+        )
+        print(counts, file=FILE)
+        print('\n', file=FILE)
 
-    print 'Counts for bigrams'
-    counts_bi = get_counts_for_bigrams(
-        df_test['sentence1'][1]
-    )
-    print counts_bi
-    print '\n'
+        print('Counts for bigrams', file=FILE)
+        counts_bi = get_counts_for_bigrams(
+            df_test['sentence1'][1]
+        )
+        print(counts_bi, file=FILE)
+        print('\n', file=FILE)
 
-    print 'Overlap counts'
-    print(re.findall(r"\w+", df_test['sentence1'][1]))
-    print(df_test['sentence2'][1])
-    print get_absolute_count_all(
-        re.findall(r"\w+", df_test['sentence1'][1]),
-        re.findall(r"\w+", df_test['sentence2'][1])
-    )
-    print get_percentage_count_all(
-        re.findall(r"\w+", df_test['sentence1'][1]),
-        re.findall(r"\w+", df_test['sentence2'][1])
-    )
-    print '\n'
+        print('Overlap counts', file=FILE)
+        print(re.findall(r"\w+", df_test['sentence1'][1]), file=FILE)
+        print(df_test['sentence2'][1], file=FILE)
+        print(
+            get_absolute_count_all(
+                re.findall(r"\w+", df_test['sentence1'][1]),
+                re.findall(r"\w+", df_test['sentence2'][1])
+            ),
+            file=FILE
+        )
+        print(
+            get_percentage_count_all(
+                re.findall(r"\w+", df_test['sentence1'][1]),
+                re.findall(r"\w+", df_test['sentence2'][1])
+            ),
+            file=FILE
+        )
+        print('\n', file=FILE)
 
-    print 'Filter by labels'
-    print filter_by_labels(get_POStags_for_sentence(df_test['sentence1_parse'][1]), NOUN)
-    print filter_by_labels(get_POStags_for_sentence(df_test['sentence2_parse'][1]), NOUN)
-    print '\n'
+        print('Filter by labels', file=FILE)
+        print(
+            filter_by_labels(
+                get_POStags_for_sentence(df_test['sentence1_parse'][1]),
+                NOUN
+            ),
+            file=FILE
+        )
+        print(
+            filter_by_labels(
+                get_POStags_for_sentence(df_test['sentence2_parse'][1]),
+                NOUN
+            ),
+            file=FILE
+        )
+        print('\n', file=FILE)
 
-    print 'Overlap counts filter'
-    print get_absolute_count_label(
-        get_POStags_for_sentence(df_test['sentence1_parse'][1]),
-        get_POStags_for_sentence(df_test['sentence2_parse'][1]),
-        NOUN
-    )
-    print get_percentage_count_label(
-        get_POStags_for_sentence(df_test['sentence1_parse'][1]),
-        get_POStags_for_sentence(df_test['sentence2_parse'][1]),
-        NOUN
-    )
-    print '\n'
+        print('Overlap counts filter', file=FILE)
+        print(
+            get_absolute_count_label(
+                get_POStags_for_sentence(df_test['sentence1_parse'][1]),
+                get_POStags_for_sentence(df_test['sentence2_parse'][1]),
+                NOUN
+            ),
+            file=FILE
+        )
+        print(
+            get_percentage_count_label(
+                get_POStags_for_sentence(df_test['sentence1_parse'][1]),
+                get_POStags_for_sentence(df_test['sentence2_parse'][1]),
+                NOUN
+            ),
+            file=FILE
+        )
+        print('\n', FILE)
 
-    print 'Bleu score'
-    print df_test['sentence1'][1]
-    print df_test['sentence2'][1]
-    print get_bleu_score(df_test['sentence1'][1], df_test['sentence2'][1], 1)
-    print get_bleu_score(df_test['sentence1'][1], df_test['sentence2'][1], 2)
-    print get_bleu_score(df_test['sentence1'][1], df_test['sentence2'][1], 3)
-    print get_bleu_score(df_test['sentence1'][1], df_test['sentence2'][1], 4)
-    print '\n'
+        print('Bleu score', file=FILE)
+        print(df_test['sentence1'][1], file=FILE)
+        print(df_test['sentence2'][1], file=FILE)
+        print(
+            get_bleu_score(
+                df_test['sentence1'][1],
+                df_test['sentence2'][1],
+                1
+            ),
+            file=FILE
+        )
+        print(
+            get_bleu_score(
+                df_test['sentence1'][1],
+                df_test['sentence2'][1],
+                2
+            ),
+            file=FILE
+        )
+        print(
+            get_bleu_score(
+                df_test['sentence1'][1],
+                df_test['sentence2'][1],
+                3
+            ),
+            file=FILE
+        )
+        print(
+            get_bleu_score(
+                df_test['sentence1'][1],
+                df_test['sentence2'][1],
+                4
+            ),
+            file=FILE
+        )
+        print('\n', file=FILE)
 
-    print 'Cross unigrams'
-    print get_cross_unigrams(df_test['sentence1_parse'][1], df_test['sentence2_parse'][1])
-    print '\n'
+        print('Cross unigrams', file=FILE)
+        print(
+            get_cross_unigrams(
+                df_test['sentence1_parse'][1],
+                df_test['sentence2_parse'][1]
+            ),
+            file=FILE
+        )
+        print('\n', file=FILE)
 
-    print 'Cross bigrams'
-    print get_cross_bigrams(df_test['sentence1_parse'][1], df_test['sentence2_parse'][1])
-    print '\n'
+        print('Cross bigrams', file=FILE)
+        print(
+            get_cross_bigrams(
+                df_test['sentence1_parse'][1],
+                df_test['sentence2_parse'][1]
+            ),
+            file=FILE
+        )
+        print('\n', file=FILE)
 
-    print 'Checking all features get created'
-    print df_test.xs(327)
-    print make_feature_list_for_pair(df_test.xs(327))
-    print '\n'
+        print('Checking all features get created', file=FILE)
+        print(df_test.xs(327), file=FILE)
+        print(make_feature_list_for_pair(df_test.xs(327)), file=FILE)
+        print('\n', file=FILE)
 
-    df_features_train = make_feature_dataframe(df_train)
-    df_features_test = make_feature_dataframe(df_test)
+        df_features_train = make_feature_dataframe(df_train)
+        df_features_test = make_feature_dataframe(df_test)
 
-    print df_features_train.shape
-    print df_features_test.shape
+        print(df_features_train.shape, file=FILE)
+        print(df_features_test.shape, file=FILE)
 
-    print df_features_train[:][:1]
+        print(df_features_train[:][:1], file=FILE)
 
-    #print 'Test mean values production'
-    #train_contradictions_summary = summarize_dataframe_per_feature(train_contradictions)
-    #train_independent_summary = summarize_dataframe_per_feature(train_independents)
-    #print '\n'
+        # print 'Test mean values production'
+        # train_contradictions_summary = summarize_dataframe_per_feature(
+        #    train_contradictions
+        # )
+        # train_independent_summary = summarize_dataframe_per_feature(
+        #    train_independents
+        # )
+        # print '\n'
 
-    print df_train.shape
-    print df_test.shape
+        print(df_train.shape, file=FILE)
+        print(df_test.shape, file=FILE)
 
-    # classify_and_compute_accuracy_simple(df_features_train, df_features_test, 1)
-    classify_and_compute_accuracy_svm(df_features_train[:][:1], df_features_test[:][:1])
+    df_features_train = make_feature_dataframe(df_train[:][:ni])
+    df_features_test = make_feature_dataframe(df_test[:][:no])
+
+    if method == 'classic':
+        classify_and_compute_accuracy_simple(
+            df_features_train,
+            df_features_test
+        )
+    elif method == 'svm':
+        classify_and_compute_accuracy_svm(
+            df_features_train[:][:ni],
+            df_features_test[:][:no]
+        )
+
+    # Close output file
+    FILE.close()
