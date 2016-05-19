@@ -716,7 +716,7 @@ if __name__ == '__main__':
     if use_file:
         FILE = open(
             '../results/' + time.strftime("%d_%m_%Y_%H_%M_%S") +
-            '_' + method + '.txt',
+            '_' + method + 'ni_' + ni + '_no_' + no + '.txt',
             'w'
         )
 
