@@ -517,13 +517,7 @@ def compute_distance_between_entry_and_summary(entry, summary):
     for field in fields:
         distance += field_difference(field, entry, summary)
 
-    lexicalized_fields = [
-        'unigrams',
-        'bigrams',
-        'cross_unigrams',
-        'cross_bigrams'
-    ]
-    for field in lexicalized_fields:
+    for field in FIELDS_TO_USE:
         distance += total_dif_first_dict_then_second(
             entry[field],
             summary[field]
