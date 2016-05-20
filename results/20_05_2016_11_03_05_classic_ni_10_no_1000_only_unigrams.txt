@@ -1,0 +1,2 @@
+Testing for training set contradictions
+	For contradiction

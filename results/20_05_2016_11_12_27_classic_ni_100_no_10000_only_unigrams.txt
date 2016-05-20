@@ -1,0 +1,22 @@
+Testing for training set contradictions
+	For contradiction
+25.0
+	For neutral
+0.0
+	For -
+100.0
+	For entailment
+0.0
+Total accuracy: 10.0
+
+
+Testing for test set contradictions
+	For contradiction
+18.1031819586
+	For neutral
+0.0
+	For -
+71.0227272727
+	For entailment
+0.0
+Total accuracy: 7.11
