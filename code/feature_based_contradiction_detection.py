@@ -712,7 +712,9 @@ if __name__ == '__main__':
                 'ni=',
                 'no=',
                 'print_garbage',
-                'use_file'
+                'use_file',
+                'use_unigrams',
+                'use_all_lexical'
             ]
         )
     except getopt.GetoptError:
