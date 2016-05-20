@@ -26,6 +26,8 @@ ADVERB = ['RB', 'RBR', 'RBS']
 
 FILE = sys.stdout
 
+FIELDS_TO_USE = []
+
 #
 # Helper functions
 #
@@ -339,17 +341,20 @@ def mark_idicator_functions_unigrams(entry):
             entry[word] = 1
     return entry
 
+
 def mark_idicator_functions_bigrams(entry):
     for word in entry['bigrams'].keys():
         if word in entry:
             entry[word] = 1
     return entry
 
+
 def mark_idicator_functions_cross_unigrams(entry):
     for word in entry['cross_unigrams'].keys():
         if word in entry:
             entry[word] = 1
     return entry
+
 
 def mark_idicator_functions_cross_bigrams(entry):
     for word in entry['cross_bigrams'].keys():
@@ -394,10 +399,7 @@ def make_feature_dataframe_extended(df_train, df):
         'cross_bigrams'
     ]
 
-    fields_to_use = [
-    ]
-
-    for field in fields_to_use:
+    for field in FIELDS_TO_USE:
         sum_dict = sum_dataframe_dict_no_total(df_train, field)
         keys = sum_dict.keys()
         keys.sort()
@@ -406,19 +408,19 @@ def make_feature_dataframe_extended(df_train, df):
 
     df_features = df
 
-    if 'unigrams' in fields_to_use:
+    if 'unigrams' in FIELDS_TO_USE:
         df_features = df.apply(mark_idicator_functions_unigrams, axis=1)
-    if 'bigrams' in fields_to_use:
+    if 'bigrams' in FIELDS_TO_USE:
         df_features = df_features.apply(
             mark_idicator_functions_bigrams,
             axis=1
         )
-    if 'cross_unigrams' in fields_to_use:
+    if 'cross_unigrams' in FIELDS_TO_USE:
         df_features = df_features.apply(
             mark_idicator_functions_cross_unigrams,
             axis=1
         )
-    if 'cross_bigrams' in fields_to_use:
+    if 'cross_bigrams' in FIELDS_TO_USE:
         df_features = df_features.apply(
             mark_idicator_functions_cross_bigrams,
             axis=1
@@ -716,7 +718,7 @@ if __name__ == '__main__':
     except getopt.GetoptError:
         print(
             'test.py -m <method> --ni <no_input> --no <no_output>' +
-            ' [--print_garbage, --use_file]' +
+            ' [--print_garbage, --use_file --use_unigrams --use_all_lexical]' +
             ', where method [classic, svm, nb]',
             file=FILE
         )
@@ -725,8 +727,8 @@ if __name__ == '__main__':
     method = 'svm'
     print_garbage = False
     use_file = False
-    ni = 10
-    no = 100
+    ni = 100
+    no = 1000
 
     for opt, arg in opts:
         if opt == '-m':
@@ -739,6 +741,14 @@ if __name__ == '__main__':
             print_garbage = True
         elif opt == '--use_file':
             use_file = True
+        elif opt == '--use_unigrams':
+            FIELDS_TO_USE.append('unigrams')
+        elif opt == '--use_all_lexical':
+            FIELDS_TO_USE.append([
+                'bigrams',
+                'cross_unigrams',
+                'cross_bigrams'
+            ])
 
     # Open output file
     if use_file:
