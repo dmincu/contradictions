@@ -738,13 +738,14 @@ if __name__ == '__main__':
         elif opt == '--use_file':
             use_file = True
         elif opt == '--use_unigrams':
-            FIELDS_TO_USE.append('unigrams')
+            FIELDS_TO_USE = ['unigrams']
         elif opt == '--use_all_lexical':
-            FIELDS_TO_USE.append([
+            FIELDS_TO_USE = [
+                'unigrams',
                 'bigrams',
                 'cross_unigrams',
                 'cross_bigrams'
-            ])
+            ]
 
     # Open output file
     if use_file:
