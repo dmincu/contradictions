@@ -722,9 +722,10 @@ if __name__ == '__main__':
 
     method = 'svm'
     print_garbage = False
-    use_file = False
+    use_file = True
     ni = 100
     no = 1000
+    file_extension = 'no_lexical'
 
     for opt, arg in opts:
         if opt == '-m':
@@ -739,6 +740,7 @@ if __name__ == '__main__':
             use_file = True
         elif opt == '--use_unigrams':
             FIELDS_TO_USE = ['unigrams']
+            file_extension = 'only_unigrams'
         elif opt == '--use_all_lexical':
             FIELDS_TO_USE = [
                 'unigrams',
@@ -746,12 +748,14 @@ if __name__ == '__main__':
                 'cross_unigrams',
                 'cross_bigrams'
             ]
+            file_extension = 'all_lexical'
 
     # Open output file
     if use_file:
         FILE = open(
             '../results/' + time.strftime("%d_%m_%Y_%H_%M_%S") +
-            '_' + method + 'ni_' + ni + '_no_' + no + '.txt',
+            '_' + method + '_ni_' + str(ni) + '_no_' + str(no) + '_' +
+            file_extension + '.txt',
             'w'
         )
 
