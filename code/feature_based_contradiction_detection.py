@@ -518,10 +518,11 @@ def compute_distance_between_entry_and_summary(entry, summary):
         distance += field_difference(field, entry, summary)
 
     for field in FIELDS_TO_USE:
-        distance += total_dif_first_dict_then_second(
-            entry[field],
-            summary[field]
-        ) / summary[field]['total_count']
+        if summary[field]['total_count'] > 0:
+            distance += total_dif_first_dict_then_second(
+                entry[field],
+                summary[field]
+            ) / summary[field]['total_count']
 
     return distance
 
