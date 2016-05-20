@@ -1,0 +1,4 @@
+Testing for training set contradictions
+	For contradiction
+100.0
+	For neutral
