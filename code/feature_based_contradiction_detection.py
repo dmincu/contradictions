@@ -732,11 +732,25 @@ def classify_and_compute_accuracy_random_forest(train_df, test_df, nest):
 
     # Test
     clf_probs = clf.predict_proba(X_test)
+    y_predicted = [
+        max(
+            xrange(len(values)),
+            key=values.__getitem__
+        ) + 1 for values in clf_probs
+    ]
     score = log_loss(y_test, clf_probs)
+
+    count = 0
+    for pred, test in itertools.izip(y_predicted, y_test):
+        if pred == test:
+            count += 1
 
     # Compare results and compute accuracy
     print(clf_probs, file=FILE)
     print(y_test, file=FILE)
+    print("Accuracy score")
+    print(count * 100.0 / len(y_test), file=FILE)
+    print("Log loss score", file=FILE)
     print(score * 100.0, file=FILE)
 
 if __name__ == '__main__':
