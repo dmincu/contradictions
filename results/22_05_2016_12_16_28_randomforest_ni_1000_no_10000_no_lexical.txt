@@ -1,0 +1,17 @@
+RandomForestClassifier(bootstrap=True, class_weight=None, criterion='gini',
+            max_depth=None, max_features='auto', max_leaf_nodes=None,
+            min_samples_leaf=1, min_samples_split=2,
+            min_weight_fraction_leaf=0.0, n_estimators=100, n_jobs=1,
+            oob_score=False, random_state=None, verbose=0,
+            warm_start=False)
+[[ 0.18  0.67  0.01  0.14]
+ [ 0.14  0.28  0.01  0.57]
+ [ 0.74  0.15  0.01  0.1 ]
+ ..., 
+ [ 0.8   0.17  0.    0.03]
+ [ 0.04  0.17  0.    0.79]
+ [ 0.14  0.61  0.    0.25]]
+[2 4 1 ..., 1 4 2]
+97.76
+Log loss score
+57.9021149624
