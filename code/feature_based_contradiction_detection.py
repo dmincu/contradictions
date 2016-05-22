@@ -699,7 +699,7 @@ def classify_and_compute_accuracy_svm(train_df, test_df):
     print(clf.score(X_test, y_test) * 100.0, file=FILE)
 
 
-def classify_and_compute_accuracy_random_forest(train_df, test_df):
+def classify_and_compute_accuracy_random_forest(train_df, test_df, nest):
     df_features_train = make_feature_dataframe_extended(train_df, train_df)
     df_features_test = make_feature_dataframe_extended(train_df, test_df)
 
@@ -722,7 +722,7 @@ def classify_and_compute_accuracy_random_forest(train_df, test_df):
     X_train = df_features_train.values
 
     # Train
-    clf = RandomForestClassifier(n_estimators=25)
+    clf = RandomForestClassifier(n_estimators=nest)
     clf.fit(X_train, y_train)
     print(clf, file=FILE)
 
@@ -748,6 +748,7 @@ if __name__ == '__main__':
             [
                 'ni=',
                 'no=',
+                'nest=',
                 'print_garbage',
                 'use_file',
                 'use_unigrams',
@@ -768,6 +769,7 @@ if __name__ == '__main__':
     use_file = False
     ni = 100
     no = 100
+    nest = 25
     file_extension = 'no_lexical'
 
     for opt, arg in opts:
@@ -777,6 +779,8 @@ if __name__ == '__main__':
             ni = int(arg)
         elif opt == '--no':
             no = int(arg)
+        elif opt == '--nest':
+            nest = int(arg)
         elif opt == '--print_garbage':
             print_garbage = True
         elif opt == '--use_file':
@@ -983,7 +987,8 @@ if __name__ == '__main__':
     elif method == 'randomforest':
         classify_and_compute_accuracy_random_forest(
             df_features_train[:][:ni],
-            df_features_test[:][:no]
+            df_features_test[:][:no],
+            nest
         )
 
     # Close output file
