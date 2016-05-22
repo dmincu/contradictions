@@ -1,0 +1,15 @@
+RandomForestClassifier(bootstrap=True, class_weight=None, criterion='gini',
+            max_depth=None, max_features='auto', max_leaf_nodes=None,
+            min_samples_leaf=1, min_samples_split=2,
+            min_weight_fraction_leaf=0.0, n_estimators=100, n_jobs=1,
+            oob_score=False, random_state=None, verbose=0,
+            warm_start=False)
+[[ 0.2   0.56  0.01  0.23]
+ [ 0.16  0.3   0.02  0.52]
+ [ 0.69  0.22  0.01  0.08]
+ ..., 
+ [ 0.81  0.15  0.    0.04]
+ [ 0.06  0.12  0.02  0.8 ]
+ [ 0.21  0.54  0.02  0.23]]
+[2 4 1 ..., 1 4 2]
+56.9234263261
