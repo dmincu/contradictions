@@ -14,6 +14,8 @@ from collections import defaultdict
 from itertools import islice, izip
 from nltk.translate import bleu_score
 from sklearn import svm
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import log_loss
 
 FULL_CSV_PATH_DEV = '../dataset/snli_1.0/snli_1.0_dev.txt'
 FULL_CSV_PATH_TRAIN = '../dataset/snli_1.0/snli_1.0_train.txt'
@@ -26,7 +28,7 @@ ADVERB = ['RB', 'RBR', 'RBS']
 
 FILE = sys.stdout
 
-FIELDS_TO_USE = []
+FIELDS_TO_USE = ['unigrams']
 
 #
 # Helper functions
@@ -697,6 +699,46 @@ def classify_and_compute_accuracy_svm(train_df, test_df):
     print(clf.score(X_test, y_test) * 100.0, file=FILE)
 
 
+def classify_and_compute_accuracy_random_forest(train_df, test_df):
+    df_features_train = make_feature_dataframe_extended(train_df, train_df)
+    df_features_test = make_feature_dataframe_extended(train_df, test_df)
+
+    # Convert the targets to float
+    labels = {
+        'contradiction': 1,
+        'neutral': 2,
+        '-': 3,
+        'entailment': 4
+    }
+    df_features_train['gold_label'] = df_features_train['gold_label'].apply(
+        lambda x: labels[x]
+    )
+    df_features_test['gold_label'] = df_features_test['gold_label'].apply(
+        lambda x: labels[x]
+    )
+
+    y_train = df_features_train['gold_label'].values
+    df_features_train.drop('gold_label', axis=1)
+    X_train = df_features_train.values
+
+    # Train
+    clf = RandomForestClassifier(n_estimators=25)
+    clf.fit(X_train, y_train)
+    print(clf, file=FILE)
+
+    y_test = df_features_test['gold_label'].values
+    df_features_test.drop('gold_label', axis=1)
+    X_test = df_features_test.values
+
+    # Test
+    clf_probs = clf.predict_proba(X_test)
+    score = log_loss(y_test, clf_probs)
+
+    # Compare results and compute accuracy
+    print(clf_probs, file=FILE)
+    print(y_test, file=FILE)
+    print(score * 100.0, file=FILE)
+
 if __name__ == '__main__':
     # Parse command line arguments
     try:
@@ -721,11 +763,11 @@ if __name__ == '__main__':
         )
         sys.exit(2)
 
-    method = 'svm'
+    method = 'randomforest'
     print_garbage = False
-    use_file = True
+    use_file = False
     ni = 100
-    no = 1000
+    no = 100
     file_extension = 'no_lexical'
 
     for opt, arg in opts:
@@ -935,6 +977,11 @@ if __name__ == '__main__':
         )
     elif method == 'svm':
         classify_and_compute_accuracy_svm(
+            df_features_train[:][:ni],
+            df_features_test[:][:no]
+        )
+    elif method == 'randomforest':
+        classify_and_compute_accuracy_random_forest(
             df_features_train[:][:ni],
             df_features_test[:][:no]
         )
