@@ -62,7 +62,7 @@ def get_POStags_for_sentence(parse):
             split_element[0] not in tagged_words[split_element[1].lower()]
         ):
             tagged_words[split_element[1].lower()].append(split_element[0])
-        else:
+        elif split_element[1].lower() not in tagged_words:
             tagged_words[split_element[1].lower()] = [split_element[0]]
 
     return tagged_words
