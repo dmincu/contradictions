@@ -18,7 +18,7 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import log_loss
 
 FULL_CSV_PATH_DEV = '../dataset/snli_1.0/snli_1.0_dev.txt'
-FULL_CSV_PATH_TRAIN = '../dataset/snli_1.0/snli_1.0_train.txt'
+FULL_CSV_PATH_TRAIN = '../dataset/snli_1.0_train.txt_Pieces/snli_1.0_train_'
 FULL_CSV_PATH_TEST = '../dataset/snli_1.0/snli_1.0_test.txt'
 
 ADJECTIVE = ['JJ', 'JJR', 'JJS']
@@ -182,6 +182,7 @@ def get_counts_for_bigrams(sentence):
 
 
 def get_cross_unigrams(premise_tags, hypothesis_tags):
+    # TODO: change this it doesn't take into account order
     premise_dict = get_POStags_for_sentence(premise_tags)
     hypothesis_dict = get_POStags_for_sentence(hypothesis_tags)
 
@@ -194,6 +195,7 @@ def get_cross_unigrams(premise_tags, hypothesis_tags):
 
 
 def get_cross_bigrams(premise_tags, hypothesis_tags):
+    # TODO: change this it doesn't take into account order
     premise_dict_aux = get_POStags_for_sentence(premise_tags)
     hypothesis_dict_aux = get_POStags_for_sentence(hypothesis_tags)
 
@@ -763,8 +765,10 @@ if __name__ == '__main__':
                 'ni=',
                 'no=',
                 'nest=',
+                'chunk_no=',
                 'print_garbage',
                 'use_file',
+                'use_dev',
                 'use_unigrams',
                 'use_all_lexical'
             ]
@@ -778,12 +782,14 @@ if __name__ == '__main__':
         )
         sys.exit(2)
 
-    method = 'randomforest'
+    method = 'svm'
     print_garbage = False
     use_file = False
-    ni = 100
-    no = 100
+    use_dev = False
+    ni = 10000
+    no = 10000
     nest = 25
+    chunk_no = 27
     file_extension = 'no_lexical'
 
     for opt, arg in opts:
@@ -795,10 +801,14 @@ if __name__ == '__main__':
             no = int(arg)
         elif opt == '--nest':
             nest = int(arg)
+        elif opt == '--chunk_no':
+            chunk_no = int(arg)
         elif opt == '--print_garbage':
             print_garbage = True
         elif opt == '--use_file':
             use_file = True
+        elif opt == '--use_dev':
+            use_dev = True
         elif opt == '--use_unigrams':
             FIELDS_TO_USE = ['unigrams']
             file_extension = 'only_unigrams'
@@ -811,6 +821,9 @@ if __name__ == '__main__':
             ]
             file_extension = 'all_lexical'
 
+    # Make input file name
+    FULL_CSV_PATH_TRAIN += str(chunk_no) + '.txt'
+
     # Open output file
     if use_file:
         FILE = open(
@@ -821,9 +834,10 @@ if __name__ == '__main__':
         )
 
     # Do the magic
-    # TODO: change to train set once everything is developed. Dev set has only
-    # a tiny amount of pairs.
-    df_train = get_dataframe_from_csv(FULL_CSV_PATH_DEV)
+    if use_dev:
+        df_train = get_dataframe_from_csv(FULL_CSV_PATH_DEV)
+    else:
+        df_train = get_dataframe_from_csv(FULL_CSV_PATH_TRAIN)
     df_test = get_dataframe_from_csv(FULL_CSV_PATH_TEST)
 
     if print_garbage:
