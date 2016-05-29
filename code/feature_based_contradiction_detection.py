@@ -786,8 +786,8 @@ if __name__ == '__main__':
     print_garbage = False
     use_file = False
     use_dev = False
-    ni = 10000
-    no = 10000
+    ni = 100
+    no = 100
     nest = 25
     chunk_no = 27
     file_extension = 'no_lexical'
