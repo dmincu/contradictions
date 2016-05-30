@@ -9,7 +9,7 @@ import sys
 import time
 
 from gensim.models import word2vec
-from keras.layers import merge, Convolution2D, MaxPooling2D, Input, Dense, Flatten
+from keras.layers import merge, Convolution1D, Convolution2D, MaxPooling1D, MaxPooling2D, Input, Dense, Flatten
 from keras.models import Model
 
 
@@ -21,7 +21,7 @@ FULL_MODEL_PATH_DEV = '../dataset/text8'
 
 FILE = sys.stdout
 
-MAX_SIZE_SENTENCE = 30
+MAX_SIZE_SENTENCE = 10
 MAX_EMBEDDINGS_SIZE = 200
 MODEL = None
 
@@ -44,10 +44,10 @@ def add_padding_to_sentence_embeddings(sentence_embeddings):
     if no_words > 0:
         embeddings_size = len(sentence_embeddings[0])
     else:
-        return np.array([[0] * MAX_EMBEDDINGS_SIZE] * MAX_SIZE_SENTENCE)
+        return [[0] * MAX_EMBEDDINGS_SIZE] * MAX_SIZE_SENTENCE
     padding = [[0] * embeddings_size] * (MAX_SIZE_SENTENCE - no_words)
 
-    return np.array(sentence_embeddings + padding)
+    return sentence_embeddings + padding
 
 
 def get_embedding_for_entry(entry):
@@ -56,17 +56,15 @@ def get_embedding_for_entry(entry):
         MODEL[x] for x in words if x in MODEL.vocab
     ]
 
-    return add_padding_to_sentence_embeddings(embeddings)
+    embeddings = add_padding_to_sentence_embeddings(embeddings)
+    return embeddings
 
 
-def get_embeddings_lists(df):
-    results_s1 = df['sentence1'].apply(get_embedding_for_entry)
-    results_s2 = df['sentence2'].apply(get_embedding_for_entry)
-
+def get_embeddings_lists(df, label):
+    results_s1 = df[label].apply(get_embedding_for_entry)
     results_s1_array = np.array([x for x in results_s1[:]])
-    results_s2_array = np.array([x for x in results_s2[:]])
 
-    return (results_s1_array, results_s2_array)
+    return results_s1_array
 
 
 def get_target_values(df):
@@ -80,51 +78,49 @@ def get_target_values(df):
 
 
 def train_model(df):
-    inputs = get_embeddings_lists(df)
+    inputs_s1 = get_embeddings_lists(df, 'sentence1')
+    inputs_s2 = get_embeddings_lists(df, 'sentence2')
     labels = get_target_values(df)
 
-    inputs_s1 = inputs[0].copy()
-    inputs_s2 = inputs[1].copy()
+    (dim_1, dim_2, dim_3) = inputs_s1.shape
 
-    dim_1 = len(inputs_s1)
-    dim_2 = len(inputs_s1[0])
-    dim_3 = len(inputs_s1[0][0])
+    print(dim_1)
+    print(dim_2)
+    print(dim_3)
 
     # Establish the input
-    #net_input = Input(shape=(dim_1, dim_2, dim_3))
-    #x = Convolution2D(64, 3, 3)(net_input)
-    #x = Convolution2D(64, 3, 3)(x)
-    #x = MaxPooling2D((2, 2))(x)
-    #out = Flatten()(x)
+    net_input = Input(shape=(dim_2, dim_3))
+    x = Convolution1D(3, 3)(net_input)
+    x = Convolution1D(3, 3)(x)
+    x = MaxPooling1D(2)(x)
+    out = Flatten()(x)
 
-    #contradiction_model = Model(net_input, out)
+    contradiction_model = Model(net_input, out)
 
-    #input_a = Input(shape=(dim_1, dim_2, dim_3))
-    #input_b = Input(shape=(dim_1, dim_2, dim_3))
+    input_a = Input(shape=(dim_2, dim_3))
+    input_b = Input(shape=(dim_2, dim_3))
 
-    #out_a = contradiction_model(input_a)
-    #out_b = contradiction_model(input_b)
+    out_a = contradiction_model(input_a)
+    out_b = contradiction_model(input_b)
 
-    #concatenated = merge([out_a, out_b], mode='concat')
-    #out = Dense(1, activation='softmax')(concatenated)
+    concatenated = merge([out_a, out_b], mode='concat')
+    out = Dense(1, activation='softmax')(concatenated)
 
-    #classification_model = Model([input_a, input_b], out)
+    classification_model = Model([input_a, input_b], out)
 
-    #classification_model.compile(
-    #    optimizer='rmsprop',
-    #    loss='binary_crossentropy',
-    #    metrics=['accuracy']
-    #)
-    #classification_model.fit(
-    #    [inputs_s1, inputs_s2],
-    #    labels,
-    #    nb_epoch=10,
-    #    batch_size=100
-    #)
+    classification_model.compile(
+        optimizer='rmsprop',
+        loss='binary_crossentropy',
+        metrics=['accuracy']
+    )
+    classification_model.fit(
+        [inputs_s1, inputs_s2],
+        labels,
+        nb_epoch=10,
+        batch_size=100
+    )
 
     print('it works to train this thing!')
-    
-    return 0
 
 
 if __name__ == '__main__':
