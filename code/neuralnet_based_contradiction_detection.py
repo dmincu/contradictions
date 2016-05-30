@@ -44,10 +44,10 @@ def add_padding_to_sentence_embeddings(sentence_embeddings):
     if no_words > 0:
         embeddings_size = len(sentence_embeddings[0])
     else:
-        return [[0] * MAX_EMBEDDINGS_SIZE] * MAX_SIZE_SENTENCE
+        return np.array([[0] * MAX_EMBEDDINGS_SIZE] * MAX_SIZE_SENTENCE)
     padding = [[0] * embeddings_size] * (MAX_SIZE_SENTENCE - no_words)
 
-    return sentence_embeddings + padding
+    return np.array(sentence_embeddings + padding)
 
 
 def get_embedding_for_entry(entry):
@@ -63,7 +63,10 @@ def get_embeddings_lists(df):
     results_s1 = df['sentence1'].apply(get_embedding_for_entry)
     results_s2 = df['sentence2'].apply(get_embedding_for_entry)
 
-    return (results_s1, results_s2)
+    results_s1_array = np.array([x for x in results_s1[:]])
+    results_s2_array = np.array([x for x in results_s2[:]])
+
+    return (results_s1_array, results_s2_array)
 
 
 def get_target_values(df):
@@ -86,9 +89,6 @@ def train_model(df):
     dim_1 = len(inputs_s1)
     dim_2 = len(inputs_s1[0])
     dim_3 = len(inputs_s1[0][0])
-
-    np.reshape(inputs_s1, (dim_1, dim_2, dim_3))
-    np.reshape(inputs_s2, (dim_1, dim_2, dim_3))
 
     # Establish the input
     net_input = Input(shape=(dim_1, dim_2, dim_3))
@@ -194,8 +194,11 @@ if __name__ == '__main__':
         df_train = get_dataframe_from_csv(FULL_CSV_PATH_TRAIN)
     df_test = get_dataframe_from_csv(FULL_CSV_PATH_TEST)
 
-    sentences = word2vec.Text8Corpus(FULL_MODEL_PATH_DEV)
-    MODEL = word2vec.Word2Vec(sentences, size=200)
+    #sentences = word2vec.Text8Corpus(FULL_MODEL_PATH_DEV)
+    #MODEL = word2vec.Word2Vec(sentences, size=200)
+    sentences = [['first', 'sentence'], ['second', 'sentence']]
+    MODEL = word2vec.Word2Vec()
+    MODEL.build_vocab(sentences)
     # MODEL = word2vec.Word2Vec.load_word2vec_format(
     #    FULL_MODEL_PATH,
     #    binary=True
