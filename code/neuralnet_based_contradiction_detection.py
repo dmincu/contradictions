@@ -8,8 +8,8 @@ import sys
 import time
 
 from gensim.models import word2vec
-#from keras.layers import merge, Convolution2D, MaxPooling2D, Input, Dense, Flatten
-#from keras.models import Model
+from keras.layers import merge, Convolution2D, MaxPooling2D, Input, Dense, Flatten
+from keras.models import Model
 
 
 
