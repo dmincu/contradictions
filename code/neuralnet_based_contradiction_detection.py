@@ -91,24 +91,24 @@ def train_model(df):
     dim_3 = len(inputs_s1[0][0])
 
     # Establish the input
-    net_input = Input(shape=(dim_1, dim_2, dim_3))
-    x = Convolution2D(64, 3, 3)(net_input)
-    x = Convolution2D(64, 3, 3)(x)
-    x = MaxPooling2D((2, 2))(x)
-    out = Flatten()(x)
+    #net_input = Input(shape=(dim_1, dim_2, dim_3))
+    #x = Convolution2D(64, 3, 3)(net_input)
+    #x = Convolution2D(64, 3, 3)(x)
+    #x = MaxPooling2D((2, 2))(x)
+    #out = Flatten()(x)
 
-    contradiction_model = Model(net_input, out)
+    #contradiction_model = Model(net_input, out)
 
-    input_a = Input(shape=(dim_1, dim_2, dim_3))
-    input_b = Input(shape=(dim_1, dim_2, dim_3))
+    #input_a = Input(shape=(dim_1, dim_2, dim_3))
+    #input_b = Input(shape=(dim_1, dim_2, dim_3))
 
-    out_a = contradiction_model(input_a)
-    out_b = contradiction_model(input_b)
+    #out_a = contradiction_model(input_a)
+    #out_b = contradiction_model(input_b)
 
-    concatenated = merge([out_a, out_b], mode='concat')
-    out = Dense(1, activation='softmax')(concatenated)
+    #concatenated = merge([out_a, out_b], mode='concat')
+    #out = Dense(1, activation='softmax')(concatenated)
 
-    classification_model = Model([input_a, input_b], out)
+    #classification_model = Model([input_a, input_b], out)
 
     #classification_model.compile(
     #    optimizer='rmsprop',
@@ -123,6 +123,8 @@ def train_model(df):
     #)
 
     print('it works to train this thing!')
+    
+    return 0
 
 
 if __name__ == '__main__':
