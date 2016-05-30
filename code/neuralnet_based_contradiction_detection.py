@@ -8,6 +8,8 @@ import sys
 import time
 
 from gensim.models import word2vec
+from keras.layers import merge, Convolution2D, MaxPooling2D, Input, Dense, Flatten
+from keras.models import Model
 
 
 
@@ -18,6 +20,10 @@ FULL_MODEL_PATH = '../dataset/GoogleNews-vectors-negative300.bin'
 FULL_MODEL_PATH_DEV = '../dataset/text8'
 
 FILE = sys.stdout
+
+MAX_SIZE_SENTENCE = 30
+MAX_EMBEDDINGS_SIZE = 200
+MODEL = None
 
 
 def get_dataframe_from_csv(csv_path):
@@ -31,6 +37,89 @@ def get_dataframe_from_csv(csv_path):
     df = pd.DataFrame.from_dict(result_list)
 
     return df
+
+
+def add_padding_to_sentence_embeddings(sentence_embeddings):
+    no_words = len(sentence_embeddings)
+    if no_words > 0:
+        embeddings_size = len(sentence_embeddings[0])
+    else:
+        return [[0] * MAX_EMBEDDINGS_SIZE] * MAX_SIZE_SENTENCE
+    padding = [[0] * embeddings_size] * (MAX_SIZE_SENTENCE - no_words)
+
+    return sentence_embeddings + padding
+
+
+def get_embedding_for_entry(entry):
+    words = re.findall(r"\w+", entry)
+    embeddings = [
+        MODEL[x] for x in words if x in MODEL.vocab
+    ]
+
+    return add_padding_to_sentence_embeddings(embeddings)
+
+
+def get_embeddings_lists(df):
+    results_s1 = df['sentence1'].apply(get_embedding_for_entry)
+    results_s2 = df['sentence2'].apply(get_embedding_for_entry)
+
+    return (results_s1, results_s2)
+
+
+def get_target_values(df):
+    labels = {
+        'contradiction': 1,
+        'neutral': 2,
+        '-': 3,
+        'entailment': 4
+    }
+    return df['gold_label'].apply(lambda x: labels[x])
+
+
+def train_model(df):
+    inputs = get_embeddings_lists(df)
+    labels = get_target_values(df)
+
+    inputs_s1 = inputs[0]
+    inputs_s2 = inputs[1]
+
+    dim_1 = len(inputs_s1)
+    dim_2 = len(inputs_s1[0])
+    dim_3 = len(inputs_s1[0][0])
+
+    # Establish the input
+    net_input = Input(shape=(dim_1, dim_2, dim_3))
+    x = Convolution2D(64, 3, 3)(net_input)
+    x = Convolution2D(64, 3, 3)(x)
+    x = MaxPooling2D((2, 2))(x)
+    out = Flatten()(x)
+
+    contradiction_model = Model(net_input, out)
+
+    input_a = Input(shape=(dim_1, dim_2, dim_3))
+    input_b = Input(shape=(dim_1, dim_2, dim_3))
+
+    out_a = contradiction_model(input_a)
+    out_b = contradiction_model(input_b)
+
+    concatenated = merge([out_a, out_b], mode='cos')
+    out = Dense(1, activation='softmax')(concatenated)
+
+    classification_model = Model([input_a, input_b], out)
+
+    classification_model.compile(
+        optimizer='rmsprop',
+        loss='binary_crossentropy',
+        metrics=['accuracy']
+    )
+    classification_model.fit(
+        [inputs_s1, inputs_s2],
+        labels,
+        nb_epoch=10,
+        batch_size=100
+    )
+
+    print('it works to train this thing!')
 
 
 if __name__ == '__main__':
@@ -103,12 +192,14 @@ if __name__ == '__main__':
     df_test = get_dataframe_from_csv(FULL_CSV_PATH_TEST)
 
     sentences = word2vec.Text8Corpus(FULL_MODEL_PATH_DEV)
-    w2vmodel = word2vec.Word2Vec(sentences, size=200)
-    # w2vmodel = word2vec.Word2Vec.load_word2vec_format(
+    MODEL = word2vec.Word2Vec(sentences, size=200)
+    # MODEL = word2vec.Word2Vec.load_word2vec_format(
     #    FULL_MODEL_PATH,
     #    binary=True
     # )
-    # print([w2vmodel[x] for x in 'this model hus everything'.split() if x in w2vmodel.vocab])
+    # print([MODEL[x] for x in 'this model hus everything'.split() if x in MODEL.vocab])
+
+    train_model(df_train)
 
     # Close output file
     FILE.close()
