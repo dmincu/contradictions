@@ -12,7 +12,6 @@ from keras.layers import merge, Convolution2D, MaxPooling2D, Input, Dense, Flatt
 from keras.models import Model
 
 
-
 FULL_CSV_PATH_DEV = '../dataset/snli_1.0/snli_1.0_dev.txt'
 FULL_CSV_PATH_TRAIN = '../dataset/snli_1.0_train.txt_Pieces/snli_1.0_train_'
 FULL_CSV_PATH_TEST = '../dataset/snli_1.0/snli_1.0_test.txt'
@@ -73,19 +72,22 @@ def get_target_values(df):
         '-': 3,
         'entailment': 4
     }
-    return df['gold_label'].apply(lambda x: labels[x])
+    return df['gold_label'].apply(lambda x: labels[x]).values
 
 
 def train_model(df):
     inputs = get_embeddings_lists(df)
     labels = get_target_values(df)
 
-    inputs_s1 = inputs[0]
-    inputs_s2 = inputs[1]
+    inputs_s1 = inputs[0].copy()
+    inputs_s2 = inputs[1].copy()
 
     dim_1 = len(inputs_s1)
     dim_2 = len(inputs_s1[0])
     dim_3 = len(inputs_s1[0][0])
+
+    inputs_s1.shape = (dim_1, dim_2, dim_3)
+    inputs_s2.shape = (dim_1, dim_2, dim_3)
 
     # Establish the input
     net_input = Input(shape=(dim_1, dim_2, dim_3))
