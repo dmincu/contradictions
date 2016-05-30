@@ -110,17 +110,17 @@ def train_model(df):
 
     classification_model = Model([input_a, input_b], out)
 
-    classification_model.compile(
-        optimizer='rmsprop',
-        loss='binary_crossentropy',
-        metrics=['accuracy']
-    )
-    classification_model.fit(
-        [inputs_s1, inputs_s2],
-        labels,
-        nb_epoch=10,
-        batch_size=100
-    )
+    #classification_model.compile(
+    #    optimizer='rmsprop',
+    #    loss='binary_crossentropy',
+    #    metrics=['accuracy']
+    #)
+    #classification_model.fit(
+    #    [inputs_s1, inputs_s2],
+    #    labels,
+    #    nb_epoch=10,
+    #    batch_size=100
+    #)
 
     print('it works to train this thing!')
 
