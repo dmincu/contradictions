@@ -8,8 +8,8 @@ import sys
 import time
 
 from gensim.models import word2vec
-from keras.layers import merge, Convolution2D, MaxPooling2D, Input, Dense, Flatten
-from keras.models import Model
+#from keras.layers import merge, Convolution2D, MaxPooling2D, Input, Dense, Flatten
+#from keras.models import Model
 
 
 
@@ -102,7 +102,7 @@ def train_model(df):
     out_a = contradiction_model(input_a)
     out_b = contradiction_model(input_b)
 
-    concatenated = merge([out_a, out_b], mode='cos')
+    concatenated = merge([out_a, out_b], mode='concat')
     out = Dense(1, activation='softmax')(concatenated)
 
     classification_model = Model([input_a, input_b], out)
