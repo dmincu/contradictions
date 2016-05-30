@@ -15,6 +15,7 @@ FULL_CSV_PATH_DEV = '../dataset/snli_1.0/snli_1.0_dev.txt'
 FULL_CSV_PATH_TRAIN = '../dataset/snli_1.0_train.txt_Pieces/snli_1.0_train_'
 FULL_CSV_PATH_TEST = '../dataset/snli_1.0/snli_1.0_test.txt'
 FULL_MODEL_PATH = '../dataset/GoogleNews-vectors-negative300.bin'
+FULL_MODEL_PATH_DEV = '../dataset/text8'
 
 FILE = sys.stdout
 
@@ -101,11 +102,13 @@ if __name__ == '__main__':
         df_train = get_dataframe_from_csv(FULL_CSV_PATH_TRAIN)
     df_test = get_dataframe_from_csv(FULL_CSV_PATH_TEST)
 
-    w2vmodel = word2vec.Word2Vec.load_word2vec_format(
-        FULL_MODEL_PATH,
-        binary=True
-    )
-    print([x for x in 'this model hus everything'.split() if x in w2vmodel.vocab])
+    sentences = word2vec.Text8Corpus(FULL_MODEL_PATH_DEV)
+    w2vmodel = word2vec.Word2Vec(sentences, size=200)
+    # w2vmodel = word2vec.Word2Vec.load_word2vec_format(
+    #    FULL_MODEL_PATH,
+    #    binary=True
+    # )
+    # print([w2vmodel[x] for x in 'this model hus everything'.split() if x in w2vmodel.vocab])
 
     # Close output file
     FILE.close()
