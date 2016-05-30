@@ -86,8 +86,8 @@ def train_model(df):
     dim_2 = len(inputs_s1[0])
     dim_3 = len(inputs_s1[0][0])
 
-    inputs_s1.shape = (dim_1, dim_2, dim_3)
-    inputs_s2.shape = (dim_1, dim_2, dim_3)
+    np.reshape(inputs_s1, (dim_1, dim_2, dim_3))
+    np.reshape(inputs_s2, (dim_1, dim_2, dim_3))
 
     # Establish the input
     net_input = Input(shape=(dim_1, dim_2, dim_3))
