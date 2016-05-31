@@ -101,16 +101,10 @@ def get_model(channels, dim_2, dim_3):
     return classification_model
 
 
-def train_model(df):
-    inputs_s1 = get_embeddings_lists(df, 'sentence1')
-    inputs_s2 = get_embeddings_lists(df, 'sentence2')
-    labels = get_target_values(df)
-
-    (dim_1, channels, dim_2, dim_3) = inputs_s1.shape
-
-    print(dim_1)
-    print(dim_2)
-    print(dim_3)
+def train_model(ni, use_dev):
+    channels = 1
+    dim_2 = MAX_SIZE_SENTENCE
+    dim_3 = MAX_EMBEDDINGS_SIZE
 
     classification_model = get_model(channels, dim_2, dim_3)
 
@@ -119,14 +113,36 @@ def train_model(df):
         loss='binary_crossentropy',
         metrics=['accuracy']
     )
-    classification_model.fit(
-        [inputs_s1, inputs_s2],
-        labels,
-        nb_epoch=10,
-        batch_size=100
-    )
+
+    for chunk_no in range(ni):
+        # Make input file name
+        FULL_CSV_PATH_TRAIN_X = FULL_CSV_PATH_TRAIN + str(chunk_no) + '.txt'
+
+        if use_dev:
+            df_train = get_dataframe_from_csv(FULL_CSV_PATH_DEV)
+        else:
+            df_train = get_dataframe_from_csv(FULL_CSV_PATH_TRAIN_X)
+        df_train = df_train[:][:100]
+
+        inputs_s1 = get_embeddings_lists(df_train, 'sentence1')
+        inputs_s2 = get_embeddings_lists(df_train, 'sentence2')
+        labels = get_target_values(df_train)
+
+        (dim_1, channels, dim_2, dim_3) = inputs_s1.shape
+
+        print(dim_1)
+        print(dim_2)
+        print(dim_3)
+
+        classification_model.fit(
+            [inputs_s1, inputs_s2],
+            labels,
+            nb_epoch=10,
+            batch_size=100
+        )
 
     return classification_model
+
 
 def test_model(classification_model, df_test):
     inputs_s1_test = get_embeddings_lists(df_test, 'sentence1')
@@ -196,9 +212,6 @@ if __name__ == '__main__':
         elif opt == '--batch_size':
             batch_size = int(arg)
 
-    # Make input file name
-    FULL_CSV_PATH_TRAIN += str(chunk_no) + '.txt'
-
     # Open output file
     if use_file:
         FILE = open(
@@ -208,11 +221,6 @@ if __name__ == '__main__':
         )
 
     # Do the magic
-    if use_dev:
-        df_train = get_dataframe_from_csv(FULL_CSV_PATH_DEV)
-    else:
-        df_train = get_dataframe_from_csv(FULL_CSV_PATH_TRAIN)
-    df_train = df_train[:][:1000]
     df_test = get_dataframe_from_csv(FULL_CSV_PATH_TEST)
 
     sentences = word2vec.Text8Corpus(FULL_MODEL_PATH_DEV)
@@ -226,7 +234,7 @@ if __name__ == '__main__':
     # )
     # print([MODEL[x] for x in 'this model hus everything'.split() if x in MODEL.vocab])
 
-    model = train_model(df_train)
+    model = train_model()
     score = test_model(model, df_test)
 
     # Close output file
