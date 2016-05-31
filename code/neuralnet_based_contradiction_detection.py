@@ -78,18 +78,7 @@ def get_target_values(df):
     return df['gold_label'].apply(lambda x: labels[x]).values
 
 
-def train_model(df):
-    inputs_s1 = get_embeddings_lists(df, 'sentence1')
-    inputs_s2 = get_embeddings_lists(df, 'sentence2')
-    labels = get_target_values(df)
-
-    (dim_1, channels, dim_2, dim_3) = inputs_s1.shape
-
-    print(dim_1)
-    print(dim_2)
-    print(dim_3)
-
-    # Establish the input
+def get_model(channels, dim_2, dim_3):
     net_input = Input(shape=(channels, dim_2, dim_3))
     x = Convolution2D(200, 5, 3, W_regularizer=l1(0.01))(net_input)
     x = Convolution2D(200, 5, 2, W_regularizer=l1(0.01))(x)
@@ -109,6 +98,22 @@ def train_model(df):
 
     classification_model = Model([input_a, input_b], out)
 
+    return classification_model
+
+
+def train_model(df):
+    inputs_s1 = get_embeddings_lists(df, 'sentence1')
+    inputs_s2 = get_embeddings_lists(df, 'sentence2')
+    labels = get_target_values(df)
+
+    (dim_1, channels, dim_2, dim_3) = inputs_s1.shape
+
+    print(dim_1)
+    print(dim_2)
+    print(dim_3)
+
+    classification_model = get_model(channels, dim_2, dim_3)
+
     classification_model.compile(
         optimizer='rmsprop',
         loss='binary_crossentropy',
@@ -121,7 +126,22 @@ def train_model(df):
         batch_size=100
     )
 
-    print('it works to train this thing!')
+    return classification_model
+
+
+def test_model(trained_model, df):
+    inputs_s1 = get_embeddings_lists(df, 'sentence1')
+    inputs_s2 = get_embeddings_lists(df, 'sentence2')
+    labels = get_target_values(df)
+
+    score = trained_model.evaluate(
+        [inputs_s1, inputs_s2],
+        labels,
+        batch_size=16
+    )
+
+    print(score)
+    return score
 
 
 if __name__ == '__main__':
@@ -204,7 +224,8 @@ if __name__ == '__main__':
     # )
     # print([MODEL[x] for x in 'this model hus everything'.split() if x in MODEL.vocab])
 
-    train_model(df_train)
+    classification_model = train_model(df_train)
+    score = test_model(classification_model, df_test)
 
     # Close output file
     FILE.close()
