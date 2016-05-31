@@ -101,7 +101,7 @@ def get_model(channels, dim_2, dim_3):
     return classification_model
 
 
-def train_and_test_model(df, df_test):
+def train_model(df):
     inputs_s1 = get_embeddings_lists(df, 'sentence1')
     inputs_s2 = get_embeddings_lists(df, 'sentence2')
     labels = get_target_values(df)
@@ -126,6 +126,9 @@ def train_and_test_model(df, df_test):
         batch_size=100
     )
 
+    return classification_model
+
+def test_model(classification_model, df_test):
     inputs_s1_test = get_embeddings_lists(df_test, 'sentence1')
     inputs_s2_test = get_embeddings_lists(df_test, 'sentence2')
     labels_test = get_target_values(df_test)
@@ -138,6 +141,7 @@ def train_and_test_model(df, df_test):
 
     print(classification_model.metrics_names)
     print(score)
+
     return score
 
 
@@ -211,18 +215,19 @@ if __name__ == '__main__':
     df_train = df_train[:][:1000]
     df_test = get_dataframe_from_csv(FULL_CSV_PATH_TEST)
 
-    #sentences = word2vec.Text8Corpus(FULL_MODEL_PATH_DEV)
-    #MODEL = word2vec.Word2Vec(sentences, size=200)
-    sentences = [['first', 'sentence'], ['second', 'sentence']]
-    MODEL = word2vec.Word2Vec()
-    MODEL.build_vocab(sentences)
+    sentences = word2vec.Text8Corpus(FULL_MODEL_PATH_DEV)
+    MODEL = word2vec.Word2Vec(sentences, size=200)
+    #sentences = [['first', 'sentence'], ['second', 'sentence']]
+    #MODEL = word2vec.Word2Vec()
+    #MODEL.build_vocab(sentences)
     # MODEL = word2vec.Word2Vec.load_word2vec_format(
     #    FULL_MODEL_PATH,
     #    binary=True
     # )
     # print([MODEL[x] for x in 'this model hus everything'.split() if x in MODEL.vocab])
 
-    score = train_and_test_model(df_train, df_test)
+    model = train_model(df_train)
+    score = test_model(model, df_test)
 
     # Close output file
     FILE.close()
