@@ -64,7 +64,7 @@ def get_embeddings_lists(df, label):
     results_s1 = df[label].apply(get_embedding_for_entry)
     results_s1_array = np.array([x for x in results_s1[:]])
 
-    return results_s1_array
+    return np.array([results_s1_array])
 
 
 def get_target_values(df):
@@ -82,23 +82,23 @@ def train_model(df):
     inputs_s2 = get_embeddings_lists(df, 'sentence2')
     labels = get_target_values(df)
 
-    (dim_1, dim_2, dim_3) = inputs_s1.shape
+    (dim_1, channels, dim_2, dim_3) = inputs_s1.shape
 
     print(dim_1)
     print(dim_2)
     print(dim_3)
 
     # Establish the input
-    net_input = Input(shape=(dim_2, dim_3))
-    x = Convolution1D(3, 3)(net_input)
-    x = Convolution1D(3, 3)(x)
-    x = MaxPooling1D(2)(x)
+    net_input = Input(shape=(channels, dim_2, dim_3))
+    x = Convolution2D(200, 5, 3, W_regularizer=l1(0.01))(net_input)
+    x = Convolution2D(200, 5, 2, W_regularizer=l1(0.01))(x)
+    x = MaxPooling2D(2, 2)(x)
     out = Flatten()(x)
 
     contradiction_model = Model(net_input, out)
 
-    input_a = Input(shape=(dim_2, dim_3))
-    input_b = Input(shape=(dim_2, dim_3))
+    input_a = Input(shape=(channels, dim_2, dim_3))
+    input_b = Input(shape=(channels, dim_2, dim_3))
 
     out_a = contradiction_model(input_a)
     out_b = contradiction_model(input_b)
