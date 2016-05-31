@@ -12,6 +12,7 @@ from gensim.models import word2vec
 from keras.regularizers import l1, activity_l1
 from keras.layers import merge, Convolution1D, Convolution2D, MaxPooling1D, MaxPooling2D, Input, Dense, Flatten
 from keras.models import Model
+from keras.optimizers import SGD
 
 
 FULL_CSV_PATH_DEV = '../dataset/snli_1.0/snli_1.0_dev.txt'
@@ -42,10 +43,15 @@ def get_dataframe_from_csv(csv_path):
 
 def add_padding_to_sentence_embeddings(sentence_embeddings):
     no_words = len(sentence_embeddings)
+
     if no_words > 0:
         embeddings_size = len(sentence_embeddings[0])
     else:
         return [[0] * MAX_EMBEDDINGS_SIZE] * MAX_SIZE_SENTENCE
+
+    if no_words > MAX_SIZE_SENTENCE:
+        return sentence_embeddings[:MAX_SIZE_SENTENCE]
+
     padding = [[0] * embeddings_size] * (MAX_SIZE_SENTENCE - no_words)
 
     return sentence_embeddings + padding
@@ -80,9 +86,9 @@ def get_target_values(df):
 
 def get_model(channels, dim_2, dim_3):
     net_input = Input(shape=(channels, dim_2, dim_3))
-    x = Convolution2D(100, 3, 200, W_regularizer=l1(0.01))(net_input)
-    #x = Convolution2D(100, 4, 200, W_regularizer=l1(0.01))(x)
-    x = MaxPooling2D((1, 1))(x)
+    x = Convolution2D(100, 3, dim_3, W_regularizer=l1(0.01))(net_input)
+    #x = Convolution2D(100, 3, dim_3, W_regularizer=l1(0.01))(x)
+    x = MaxPooling2D((4, 1), dim_ordering='th')(x)
     out = Flatten()(x)
 
     contradiction_model = Model(net_input, out)
@@ -101,22 +107,23 @@ def get_model(channels, dim_2, dim_3):
     return classification_model
 
 
-def train_model(ni, use_dev):
+def train_and_test_model(ni, use_dev, df_test):
     channels = 1
     dim_2 = MAX_SIZE_SENTENCE
     dim_3 = MAX_EMBEDDINGS_SIZE
 
     classification_model = get_model(channels, dim_2, dim_3)
 
+    opt = SGD(lr=0.0001)
     classification_model.compile(
-        optimizer='rmsprop',
+        optimizer=opt,
         loss='binary_crossentropy',
         metrics=['accuracy']
     )
 
     for chunk_no in range(ni):
         # Make input file name
-        FULL_CSV_PATH_TRAIN_X = FULL_CSV_PATH_TRAIN + str(chunk_no) + '.txt'
+        FULL_CSV_PATH_TRAIN_X = FULL_CSV_PATH_TRAIN + str(chunk_no + 1) + '.txt'
 
         if use_dev:
             df_train = get_dataframe_from_csv(FULL_CSV_PATH_DEV)
@@ -128,31 +135,30 @@ def train_model(ni, use_dev):
         inputs_s2 = get_embeddings_lists(df_train, 'sentence2')
         labels = get_target_values(df_train)
 
+        print(inputs_s1.shape)
+
         (dim_1, channels, dim_2, dim_3) = inputs_s1.shape
 
         print(dim_1)
         print(dim_2)
         print(dim_3)
 
-        classification_model.fit(
+        score_train = classification_model.fit(
             [inputs_s1, inputs_s2],
             labels,
             nb_epoch=10,
             batch_size=100
         )
+        print(score_train)
 
-    return classification_model
-
-
-def test_model(classification_model, df_test):
     inputs_s1_test = get_embeddings_lists(df_test, 'sentence1')
     inputs_s2_test = get_embeddings_lists(df_test, 'sentence2')
     labels_test = get_target_values(df_test)
 
     score = classification_model.evaluate(
-        [inputs_s1, inputs_s2],
-        labels,
-        batch_size=1
+        [inputs_s1_test, inputs_s2_test],
+        labels_test,
+        batch_size=10
     )
 
     print(classification_model.metrics_names)
@@ -174,6 +180,7 @@ if __name__ == '__main__':
                 'chunk_no=',
                 'print_garbage',
                 'use_file',
+                'use_dev',
             ]
         )
     except getopt.GetoptError:
@@ -190,9 +197,9 @@ if __name__ == '__main__':
     use_file = False
     use_dev = False
     ni = 1
-    no = 100
+    no = 10000
     batch_size = 10
-    chunk_no = 27
+    chunk_no = 1 
 
     for opt, arg in opts:
         if opt == '-m':
@@ -234,8 +241,7 @@ if __name__ == '__main__':
     # )
     # print([MODEL[x] for x in 'this model hus everything'.split() if x in MODEL.vocab])
 
-    model = train_model()
-    score = test_model(model, df_test)
+    score = train_and_test_model(ni, use_dev, df_test)
 
     # Close output file
     FILE.close()
