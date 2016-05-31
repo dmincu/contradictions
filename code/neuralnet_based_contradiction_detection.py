@@ -136,6 +136,7 @@ def train_and_test_model(df, df_test):
         batch_size=1
     )
 
+    print(classification_model.metrics_names)
     print(score)
     return score
 
@@ -169,7 +170,7 @@ if __name__ == '__main__':
     use_file = False
     use_dev = False
     ni = 1
-    no = 10
+    no = 100
     batch_size = 10
     chunk_no = 27
 
@@ -207,7 +208,7 @@ if __name__ == '__main__':
         df_train = get_dataframe_from_csv(FULL_CSV_PATH_DEV)
     else:
         df_train = get_dataframe_from_csv(FULL_CSV_PATH_TRAIN)
-    df_train = df_train[:][:100]
+    df_train = df_train[:][:1000]
     df_test = get_dataframe_from_csv(FULL_CSV_PATH_TEST)
 
     #sentences = word2vec.Text8Corpus(FULL_MODEL_PATH_DEV)
