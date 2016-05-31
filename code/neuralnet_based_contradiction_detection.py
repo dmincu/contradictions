@@ -80,9 +80,9 @@ def get_target_values(df):
 
 def get_model(channels, dim_2, dim_3):
     net_input = Input(shape=(channels, dim_2, dim_3))
-    x = Convolution2D(200, 5, 3, W_regularizer=l1(0.01))(net_input)
-    x = Convolution2D(200, 5, 2, W_regularizer=l1(0.01))(x)
-    x = MaxPooling2D((2, 2))(x)
+    x = Convolution2D(100, 3, 200, W_regularizer=l1(0.01))(net_input)
+    #x = Convolution2D(100, 4, 200, W_regularizer=l1(0.01))(x)
+    x = MaxPooling2D((1, 1))(x)
     out = Flatten()(x)
 
     contradiction_model = Model(net_input, out)
@@ -101,7 +101,7 @@ def get_model(channels, dim_2, dim_3):
     return classification_model
 
 
-def train_model(df):
+def train_and_test_model(df, df_test):
     inputs_s1 = get_embeddings_lists(df, 'sentence1')
     inputs_s2 = get_embeddings_lists(df, 'sentence2')
     labels = get_target_values(df)
@@ -126,18 +126,14 @@ def train_model(df):
         batch_size=100
     )
 
-    return classification_model
+    inputs_s1_test = get_embeddings_lists(df_test, 'sentence1')
+    inputs_s2_test = get_embeddings_lists(df_test, 'sentence2')
+    labels_test = get_target_values(df_test)
 
-
-def test_model(trained_model, df):
-    inputs_s1 = get_embeddings_lists(df, 'sentence1')
-    inputs_s2 = get_embeddings_lists(df, 'sentence2')
-    labels = get_target_values(df)
-
-    score = trained_model.evaluate(
+    score = classification_model.evaluate(
         [inputs_s1, inputs_s2],
         labels,
-        batch_size=16
+        batch_size=1
     )
 
     print(score)
@@ -173,7 +169,7 @@ if __name__ == '__main__':
     use_file = False
     use_dev = False
     ni = 1
-    no = 100
+    no = 10
     batch_size = 10
     chunk_no = 27
 
@@ -211,6 +207,7 @@ if __name__ == '__main__':
         df_train = get_dataframe_from_csv(FULL_CSV_PATH_DEV)
     else:
         df_train = get_dataframe_from_csv(FULL_CSV_PATH_TRAIN)
+    df_train = df_train[:][:100]
     df_test = get_dataframe_from_csv(FULL_CSV_PATH_TEST)
 
     #sentences = word2vec.Text8Corpus(FULL_MODEL_PATH_DEV)
@@ -224,8 +221,7 @@ if __name__ == '__main__':
     # )
     # print([MODEL[x] for x in 'this model hus everything'.split() if x in MODEL.vocab])
 
-    classification_model = train_model(df_train)
-    score = test_model(classification_model, df_test)
+    score = train_and_test_model(df_train, df_test)
 
     # Close output file
     FILE.close()
