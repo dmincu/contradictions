@@ -58,14 +58,14 @@ def get_embedding_for_entry(entry):
     ]
 
     embeddings = add_padding_to_sentence_embeddings(embeddings)
-    return embeddings
+    return np.array([embeddings])
 
 
 def get_embeddings_lists(df, label):
     results_s1 = df[label].apply(get_embedding_for_entry)
     results_s1_array = np.array([x for x in results_s1[:]])
 
-    return np.array([results_s1_array])
+    return results_s1_array
 
 
 def get_target_values(df):
