@@ -93,7 +93,7 @@ def train_model(df):
     net_input = Input(shape=(channels, dim_2, dim_3))
     x = Convolution2D(200, 5, 3, W_regularizer=l1(0.01))(net_input)
     x = Convolution2D(200, 5, 2, W_regularizer=l1(0.01))(x)
-    x = MaxPooling2D(2, 1)(x)
+    x = MaxPooling2D((2, 2))(x)
     out = Flatten()(x)
 
     contradiction_model = Model(net_input, out)
