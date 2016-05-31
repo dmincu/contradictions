@@ -9,6 +9,7 @@ import sys
 import time
 
 from gensim.models import word2vec
+from keras.regularizers import l1, activity_l1
 from keras.layers import merge, Convolution1D, Convolution2D, MaxPooling1D, MaxPooling2D, Input, Dense, Flatten
 from keras.models import Model
 
