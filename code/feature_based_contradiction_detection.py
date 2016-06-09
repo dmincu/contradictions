@@ -28,7 +28,9 @@ ADVERB = ['RB', 'RBR', 'RBS']
 
 FILE = sys.stdout
 
-FIELDS_TO_USE = ['unigrams']
+FIELDS_TO_USE = []
+
+save_df = True
 
 #
 # Helper functions
@@ -664,6 +666,18 @@ def classify_and_compute_accuracy_svm(train_df, test_df):
     df_features_train = make_feature_dataframe_extended(train_df, train_df)
     df_features_test = make_feature_dataframe_extended(train_df, test_df)
 
+    if save_df:
+        df_features_train.to_csv(
+            '../debug/dataframes_train_' +
+            time.strftime("%d_%m_%Y_%H_%M_%S") + '.txt',
+            sep='\t'
+        )
+        df_features_test.to_csv(
+            '../debug/dataframes_test_' +
+            time.strftime("%d_%m_%Y_%H_%M_%S") + '.txt',
+            sep='\t'
+        )
+
     # Create SVM classifier
     clf = svm.SVC()
 
@@ -770,7 +784,8 @@ if __name__ == '__main__':
                 'use_file',
                 'use_dev',
                 'use_unigrams',
-                'use_all_lexical'
+                'use_all_lexical',
+                'save_df'
             ]
         )
     except getopt.GetoptError:
@@ -787,7 +802,7 @@ if __name__ == '__main__':
     use_file = False
     use_dev = False
     ni = 100
-    no = 100
+    no = 10000
     nest = 25
     chunk_no = 27
     file_extension = 'no_lexical'
@@ -805,6 +820,8 @@ if __name__ == '__main__':
             chunk_no = int(arg)
         elif opt == '--print_garbage':
             print_garbage = True
+        elif opt == '--save_df':
+            save_df = True
         elif opt == '--use_file':
             use_file = True
         elif opt == '--use_dev':
@@ -838,7 +855,10 @@ if __name__ == '__main__':
         df_train = get_dataframe_from_csv(FULL_CSV_PATH_DEV)
     else:
         df_train = get_dataframe_from_csv(FULL_CSV_PATH_TRAIN)
+    df_train.reindex(np.random.permutation(df_train.index))
+
     df_test = get_dataframe_from_csv(FULL_CSV_PATH_TEST)
+    df_test.reindex(np.random.permutation(df_test.index))
 
     if print_garbage:
         print('POS tags for sentence test', file=FILE)
