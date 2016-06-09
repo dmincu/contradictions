@@ -13,6 +13,7 @@ from keras.regularizers import l1, activity_l1
 from keras.layers import merge, Convolution1D, Convolution2D, MaxPooling1D, MaxPooling2D, Input, Dense, Flatten
 from keras.models import Model
 from keras.optimizers import SGD
+from keras.utils.np_utils import to_categorical
 
 
 FULL_CSV_PATH_DEV = '../dataset/snli_1.0/snli_1.0_dev.txt'
@@ -76,10 +77,10 @@ def get_embeddings_lists(df, label):
 
 def get_target_values(df):
     labels = {
-        'contradiction': 1,
-        'neutral': 2,
-        '-': 3,
-        'entailment': 4
+        'contradiction': 0,
+        'neutral': 1,
+        '-': 2,
+        'entailment': 3
     }
     return df['gold_label'].apply(lambda x: labels[x]).values
 
@@ -100,7 +101,7 @@ def get_model(channels, dim_2, dim_3):
     out_b = contradiction_model(input_b)
 
     concatenated = merge([out_a, out_b], mode='concat')
-    out = Dense(1, activation='softmax')(concatenated)
+    out = Dense(4, activation='softmax')(concatenated)
 
     classification_model = Model([input_a, input_b], out)
 
@@ -114,26 +115,21 @@ def train_and_test_model(ni, use_dev, df_test):
 
     classification_model = get_model(channels, dim_2, dim_3)
 
-    opt = SGD(lr=0.0001)
+    opt = SGD(lr=0.01)
     classification_model.compile(
         optimizer=opt,
-        loss='binary_crossentropy',
+        loss='categorical_crossentropy',
         metrics=['accuracy']
     )
 
-    for chunk_no in range(ni):
-        # Make input file name
-        FULL_CSV_PATH_TRAIN_X = FULL_CSV_PATH_TRAIN + str(chunk_no + 1) + '.txt'
-
-        if use_dev:
-            df_train = get_dataframe_from_csv(FULL_CSV_PATH_DEV)
-        else:
-            df_train = get_dataframe_from_csv(FULL_CSV_PATH_TRAIN_X)
+    if use_dev:
+        df_train = get_dataframe_from_csv(FULL_CSV_PATH_DEV)
         df_train = df_train[:][:100]
 
         inputs_s1 = get_embeddings_lists(df_train, 'sentence1')
         inputs_s2 = get_embeddings_lists(df_train, 'sentence2')
         labels = get_target_values(df_train)
+        labels_binary = to_categorical(labels)
 
         print(inputs_s1.shape)
 
@@ -143,21 +139,48 @@ def train_and_test_model(ni, use_dev, df_test):
         print(dim_2)
         print(dim_3)
 
-        score_train = classification_model.fit(
+        classification_model.fit(
             [inputs_s1, inputs_s2],
-            labels,
-            nb_epoch=10,
+            labels_binary,
+            nb_epoch=100,
             batch_size=100
         )
-        print(score_train)
+    else:
+        for chunk_no in range(ni):
+            # Make input file name
+            FULL_CSV_PATH_TRAIN_X = FULL_CSV_PATH_TRAIN + str(chunk_no + 1) + '.txt'
+
+            df_train = get_dataframe_from_csv(FULL_CSV_PATH_TRAIN_X)
+            df_train = df_train[:][:1000]
+
+            inputs_s1 = get_embeddings_lists(df_train, 'sentence1')
+            inputs_s2 = get_embeddings_lists(df_train, 'sentence2')
+            labels = get_target_values(df_train)
+            labels_binary = to_categorical(labels)
+
+            print(inputs_s1.shape)
+
+            (dim_1, channels, dim_2, dim_3) = inputs_s1.shape
+
+            print(dim_1)
+            print(dim_2)
+            print(dim_3)
+
+            classification_model.fit(
+                [inputs_s1, inputs_s2],
+                labels_binary,
+                nb_epoch=100,
+                batch_size=100
+            )
 
     inputs_s1_test = get_embeddings_lists(df_test, 'sentence1')
     inputs_s2_test = get_embeddings_lists(df_test, 'sentence2')
     labels_test = get_target_values(df_test)
+    labels_test_binary = to_categorical(labels_test)
 
     score = classification_model.evaluate(
         [inputs_s1_test, inputs_s2_test],
-        labels_test,
+        labels_test_binary,
         batch_size=10
     )
 
@@ -192,7 +215,7 @@ if __name__ == '__main__':
         )
         sys.exit(2)
 
-    method = 'lstm'
+    method = 'cnn'
     print_garbage = False
     use_file = False
     use_dev = False
@@ -231,7 +254,7 @@ if __name__ == '__main__':
     df_test = get_dataframe_from_csv(FULL_CSV_PATH_TEST)
 
     sentences = word2vec.Text8Corpus(FULL_MODEL_PATH_DEV)
-    MODEL = word2vec.Word2Vec(sentences, size=200)
+    MODEL = word2vec.Word2Vec(sentences, size=MAX_EMBEDDINGS_SIZE)
     #sentences = [['first', 'sentence'], ['second', 'sentence']]
     #MODEL = word2vec.Word2Vec()
     #MODEL.build_vocab(sentences)
