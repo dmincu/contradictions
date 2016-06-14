@@ -18,6 +18,7 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import log_loss
 
 FULL_CSV_PATH_DEV = '../dataset/snli_1.0/snli_1.0_dev.txt'
+FULL_CSV_PATH_FULL_TRAIN = '../dataset/snli_1.0/snli_1.0_train.txt'
 FULL_CSV_PATH_TRAIN = '../dataset/snli_1.0_train.txt_Pieces/snli_1.0_train_'
 FULL_CSV_PATH_TEST = '../dataset/snli_1.0/snli_1.0_test.txt'
 
@@ -712,6 +713,7 @@ def classify_and_compute_accuracy_svm(train_df, test_df):
     # Compare results and compute accuracy
     print(results, file=FILE)
     print(y_test, file=FILE)
+    print(clf.score(X_train, y_train) * 100.0, file=FILE)
     print(clf.score(X_test, y_test) * 100.0, file=FILE)
 
 
@@ -770,39 +772,6 @@ def classify_and_compute_accuracy_random_forest(train_df, test_df, nest):
     print(score * 100.0, file=FILE)
 
 
-def plot_tsne(data, labels, should_recalculate_model, figname):
-    TSNE_DIM = 2
-    NR_FEATURES = len(data)
-
-    if should_recalculate_model:
-        y_tsne = tsn.calc_tsne(data, NO_DIMS=TSNE_DIM, INITIAL_DIMS=NR_FEATURES)
-
-        f = open('tsne.dat', 'wb')
-        f.write(pack('=ii', len(y_tsne), TSNE_DIM))
-        for inst in y_tsne:
-            for j in range(TSNE_DIM):
-                f.write(pack('=d', inst[j]))
-        f.close()
-    else:
-        f = open('tsne.dat', 'rb')
-        n, ND = readbin('ii', f)
-        y_tsne = empty((n, ND))
-        for i in range(n):
-            for j in range(ND):
-                y_tsne[i, j] = readbin('d', f)[0]
-        f.close()
-
-    #TODO: change color map because it might repeat colors
-    plt.figure(figsize=(10, 15))
-    plt.scatter(y_tsne[:, 0], y_tsne[:, 1], s = (labels + 1) * 5, c = (labels * 2 + 5) * 20, cmap='cool')
-    plt.xlabel('First component')
-    plt.ylabel('Second component')
-
-    #plt.savefig(figname, bbox_inches='tight')
-
-    plt.show()
-
-
 if __name__ == '__main__':
     # Parse command line arguments
     try:
@@ -819,6 +788,7 @@ if __name__ == '__main__':
                 'use_dev',
                 'use_unigrams',
                 'use_all_lexical',
+                'use_full_train',
                 'save_df'
             ]
         )
@@ -835,8 +805,9 @@ if __name__ == '__main__':
     print_garbage = False
     use_file = False
     use_dev = False
+    use_full_train = False
     ni = 100
-    no = 10000
+    no = 100
     nest = 25
     chunk_no = 55
     file_extension = 'no_lexical'
@@ -854,6 +825,8 @@ if __name__ == '__main__':
             chunk_no = int(arg)
         elif opt == '--print_garbage':
             print_garbage = True
+        elif opt == '--use_full_train':
+            use_full_train = True
         elif opt == '--save_df':
             save_df = True
         elif opt == '--use_file':
@@ -887,6 +860,8 @@ if __name__ == '__main__':
     # Do the magic
     if use_dev:
         df_train = get_dataframe_from_csv(FULL_CSV_PATH_DEV)
+    elif use_full_train:
+        df_train = get_dataframe_from_csv(FULL_CSV_PATH_FULL_TRAIN)
     else:
         df_train = get_dataframe_from_csv(FULL_CSV_PATH_TRAIN)
     df_train.reindex(np.random.permutation(df_train.index))
