@@ -11,6 +11,7 @@ import sys
 import time
 
 from collections import defaultdict
+from collections import OrderedDict
 from itertools import islice, izip
 from nltk.translate import bleu_score
 from sklearn import svm
@@ -56,7 +57,7 @@ def get_dataframe_subset_for_label(df, label):
 
 
 def get_POStags_for_sentence(parse):
-    tagged_words = {}
+    tagged_words = OrderedDict()
 
     for element in re.findall(r"([\w']+ [\w']+)", parse):
         split_element = element.split(' ')
@@ -806,8 +807,8 @@ if __name__ == '__main__':
     use_file = False
     use_dev = False
     use_full_train = False
-    ni = 10000
-    no = 10000
+    ni = 1000
+    no = 100
     nest = 25
     chunk_no = 55
     file_extension = 'no_lexical'
