@@ -16,7 +16,6 @@ from nltk.translate import bleu_score
 from sklearn import svm
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import log_loss
-from tsne import calc_tsne as tsn
 
 FULL_CSV_PATH_DEV = '../dataset/snli_1.0/snli_1.0_dev.txt'
 FULL_CSV_PATH_TRAIN = '../dataset/snli_1.0_train.txt_Pieces/snli_1.0_train_'
