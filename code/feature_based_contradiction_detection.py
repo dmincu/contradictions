@@ -16,6 +16,7 @@ from nltk.translate import bleu_score
 from sklearn import svm
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import log_loss
+from tsne import calc_tsne as tsn
 
 FULL_CSV_PATH_DEV = '../dataset/snli_1.0/snli_1.0_dev.txt'
 FULL_CSV_PATH_TRAIN = '../dataset/snli_1.0_train.txt_Pieces/snli_1.0_train_'
@@ -697,7 +698,7 @@ def classify_and_compute_accuracy_svm(train_df, test_df):
 
     # Train it on the data
     y_train = df_features_train['gold_label'].values
-    df_features_train.drop('gold_label', axis=1)
+    df_features_train.drop('gold_label', axis=1, inplace=True)
     X_train = df_features_train.values
     clf.fit(X_train, y_train)
 
@@ -705,7 +706,7 @@ def classify_and_compute_accuracy_svm(train_df, test_df):
 
     # Start predicting
     y_test = df_features_test['gold_label'].values
-    df_features_test.drop('gold_label', axis=1)
+    df_features_test.drop('gold_label', axis=1, inplace=True)
     X_test = df_features_test.values
     results = clf.predict(df_features_test)
 
@@ -734,7 +735,7 @@ def classify_and_compute_accuracy_random_forest(train_df, test_df, nest):
     )
 
     y_train = df_features_train['gold_label'].values
-    df_features_train.drop('gold_label', axis=1)
+    df_features_train.drop('gold_label', axis=1, inplace=True)
     X_train = df_features_train.values
 
     # Train
@@ -743,7 +744,7 @@ def classify_and_compute_accuracy_random_forest(train_df, test_df, nest):
     print(clf, file=FILE)
 
     y_test = df_features_test['gold_label'].values
-    df_features_test.drop('gold_label', axis=1)
+    df_features_test.drop('gold_label', axis=1, inplace=True)
     X_test = df_features_test.values
 
     # Test
@@ -768,6 +769,40 @@ def classify_and_compute_accuracy_random_forest(train_df, test_df, nest):
     print(count * 100.0 / len(y_test), file=FILE)
     print("Log loss score", file=FILE)
     print(score * 100.0, file=FILE)
+
+
+def plot_tsne(data, labels, should_recalculate_model, figname):
+    TSNE_DIM = 2
+    NR_FEATURES = len(data)
+
+    if should_recalculate_model:
+        y_tsne = tsn.calc_tsne(data, NO_DIMS=TSNE_DIM, INITIAL_DIMS=NR_FEATURES)
+
+        f = open('tsne.dat', 'wb')
+        f.write(pack('=ii', len(y_tsne), TSNE_DIM))
+        for inst in y_tsne:
+            for j in range(TSNE_DIM):
+                f.write(pack('=d', inst[j]))
+        f.close()
+    else:
+        f = open('tsne.dat', 'rb')
+        n, ND = readbin('ii', f)
+        y_tsne = empty((n, ND))
+        for i in range(n):
+            for j in range(ND):
+                y_tsne[i, j] = readbin('d', f)[0]
+        f.close()
+
+    #TODO: change color map because it might repeat colors
+    plt.figure(figsize=(10, 15))
+    plt.scatter(y_tsne[:, 0], y_tsne[:, 1], s = (labels + 1) * 5, c = (labels * 2 + 5) * 20, cmap='cool')
+    plt.xlabel('First component')
+    plt.ylabel('Second component')
+
+    #plt.savefig(figname, bbox_inches='tight')
+
+    plt.show()
+
 
 if __name__ == '__main__':
     # Parse command line arguments
@@ -804,7 +839,7 @@ if __name__ == '__main__':
     ni = 100
     no = 10000
     nest = 25
-    chunk_no = 27
+    chunk_no = 55
     file_extension = 'no_lexical'
 
     for opt, arg in opts:
@@ -1029,13 +1064,13 @@ if __name__ == '__main__':
         )
     elif method == 'svm':
         classify_and_compute_accuracy_svm(
-            df_features_train[:][:ni],
-            df_features_test[:][:no]
+            df_features_train,
+            df_features_test
         )
     elif method == 'randomforest':
         classify_and_compute_accuracy_random_forest(
-            df_features_train[:][:ni],
-            df_features_test[:][:no],
+            df_features_train,
+            df_features_test,
             nest
         )
 
