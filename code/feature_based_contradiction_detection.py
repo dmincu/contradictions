@@ -806,8 +806,8 @@ if __name__ == '__main__':
     use_file = False
     use_dev = False
     use_full_train = False
-    ni = 100
-    no = 100
+    ni = 10000
+    no = 10000
     nest = 25
     chunk_no = 55
     file_extension = 'no_lexical'
@@ -864,9 +864,11 @@ if __name__ == '__main__':
         df_train = get_dataframe_from_csv(FULL_CSV_PATH_FULL_TRAIN)
     else:
         df_train = get_dataframe_from_csv(FULL_CSV_PATH_TRAIN)
+    df_train = df_train[df_train.gold_label != '-']
     df_train.reindex(np.random.permutation(df_train.index))
 
     df_test = get_dataframe_from_csv(FULL_CSV_PATH_TEST)
+    df_test = df_test[df_test.gold_label != '-']
     df_test.reindex(np.random.permutation(df_test.index))
 
     if print_garbage:
