@@ -124,7 +124,7 @@ def train_and_test_model(ni, use_dev, df_test):
 
     if use_dev:
         df_train = get_dataframe_from_csv(FULL_CSV_PATH_DEV)
-        df_train = df_train[:][:100]
+        df_train = df_train[:][:1000]
 
         inputs_s1 = get_embeddings_lists(df_train, 'sentence1')
         inputs_s2 = get_embeddings_lists(df_train, 'sentence2')
@@ -181,7 +181,7 @@ def train_and_test_model(ni, use_dev, df_test):
     score = classification_model.evaluate(
         [inputs_s1_test, inputs_s2_test],
         labels_test_binary,
-        batch_size=10
+        batch_size=100
     )
 
     print(classification_model.metrics_names)
