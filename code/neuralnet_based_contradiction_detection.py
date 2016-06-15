@@ -108,6 +108,30 @@ def get_model(channels, dim_2, dim_3):
     return classification_model
 
 
+def get_deeper_model(channels, dim_2, dim_3):
+    net_input = Input(shape=(channels, dim_2, dim_3))
+    x = Convolution2D(100, 2, dim_3, W_regularizer=l1(0.01))(net_input)
+    x = Convolution2D(100, 3, dim_3, W_regularizer=l1(0.01))(x)
+    x = Convolution2D(100, 4, dim_3, W_regularizer=l1(0.01))(x)
+    x = MaxPooling2D((4, 1), dim_ordering='th')(x)
+    out = Flatten()(x)
+
+    contradiction_model = Model(net_input, out)
+
+    input_a = Input(shape=(channels, dim_2, dim_3))
+    input_b = Input(shape=(channels, dim_2, dim_3))
+
+    out_a = contradiction_model(input_a)
+    out_b = contradiction_model(input_b)
+
+    concatenated = merge([out_a, out_b], mode='concat')
+    out = Dense(4, activation='softmax')(concatenated)
+
+    classification_model = Model([input_a, input_b], out)
+
+    return classification_model
+
+
 def train_and_test_model(ni, use_dev, df_test):
     channels = 1
     dim_2 = MAX_SIZE_SENTENCE
@@ -151,6 +175,8 @@ def train_and_test_model(ni, use_dev, df_test):
             FULL_CSV_PATH_TRAIN_X = FULL_CSV_PATH_TRAIN + str(chunk_no + 1) + '.txt'
 
             df_train = get_dataframe_from_csv(FULL_CSV_PATH_TRAIN_X)
+            df_train = df_train[df_train.gold_label != '-']
+            df_train.reindex(np.random.permutation(df_train.index))
             df_train = df_train[:][:1000]
 
             inputs_s1 = get_embeddings_lists(df_train, 'sentence1')
@@ -222,7 +248,7 @@ if __name__ == '__main__':
     ni = 1
     no = 10000
     batch_size = 10
-    chunk_no = 1 
+    chunk_no = 1
 
     for opt, arg in opts:
         if opt == '-m':
@@ -252,6 +278,8 @@ if __name__ == '__main__':
 
     # Do the magic
     df_test = get_dataframe_from_csv(FULL_CSV_PATH_TEST)
+    df_test = df_test[df_test.gold_label != '-']
+    df_test.reindex(np.random.permutation(df_test.index))
 
     sentences = word2vec.Text8Corpus(FULL_MODEL_PATH_DEV)
     MODEL = word2vec.Word2Vec(sentences, size=MAX_EMBEDDINGS_SIZE)
