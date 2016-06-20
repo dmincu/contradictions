@@ -138,10 +138,14 @@ def get_embeddings_lists(df, label):
 def get_encoding_for_sentence(sentence):
     sentence = sentence.lower()
     result = [[0] * len(ALPHABET)] * MAX_CHAR_SENTENCE_SIZE
-    for i in range(MAX_CHAR_SENTENCE_SIZE):
-        if sentence[i] in ALPHABET:
-            result[i][ALPHABET[sentence[i]] - 1] = 1
-    return result
+    i = 0
+    for c in sentence:
+	if i >= MAX_CHAR_SENTENCE_SIZE:
+	    break
+        if c in ALPHABET:
+            result[i][ALPHABET[c] - 1] = 1
+	i += 1
+    return np.array([result])
 
 
 def get_char_encodings_dataframe(df, label):
@@ -164,8 +168,7 @@ def get_target_values(df):
 def get_model(channels, dim_2, dim_3):
     net_input = Input(shape=(channels, dim_2, dim_3))
     x = Convolution2D(100, 3, dim_3, W_regularizer=l1(0.01))(net_input)
-    #x = Convolution2D(100, 3, dim_3, W_regularizer=l1(0.01))(x)
-    x = MaxPooling2D((4, 1), dim_ordering='th')(x)
+    x = MaxPooling2D((8, 1), dim_ordering='th')(x)
     out = Flatten()(x)
 
     contradiction_model = Model(net_input, out)
@@ -226,6 +229,9 @@ def train_and_test_model(ni, use_dev, df_test, method):
         metrics=['accuracy']
     )
 
+    print(dim_2)
+    print(dim_3)
+
     if use_dev:
         df_train = get_dataframe_from_csv(FULL_CSV_PATH_DEV)
 
@@ -233,14 +239,6 @@ def train_and_test_model(ni, use_dev, df_test, method):
         inputs_s2 = get_embeddings_lists(df_train, 'sentence2')
         labels = get_target_values(df_train)
         labels_binary = to_categorical(labels)
-
-        print(inputs_s1.shape)
-
-        (dim_1, channels, dim_2, dim_3) = inputs_s1.shape
-
-        print(dim_1)
-        print(dim_2)
-        print(dim_3)
 
         classification_model.fit(
             [inputs_s1, inputs_s2],
@@ -266,13 +264,7 @@ def train_and_test_model(ni, use_dev, df_test, method):
             labels = get_target_values(df_train)
             labels_binary = to_categorical(labels)
 
-            print(inputs_s1.shape)
-
-            (dim_1, channels, dim_2, dim_3) = inputs_s1.shape
-
-            print(dim_1)
-            print(dim_2)
-            print(dim_3)
+            print('Processing chunk no' + str(chunk_no))
 
             classification_model.fit(
                 [inputs_s1, inputs_s2],
