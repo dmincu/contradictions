@@ -28,6 +28,66 @@ MAX_SIZE_SENTENCE = 10
 MAX_EMBEDDINGS_SIZE = 200
 MODEL = None
 
+MAX_CHAR_SENTENCE_SIZE = 60
+ALPHABET = {
+    'a': 1,
+    'b': 2,
+    'c': 3,
+    'd': 4,
+    'e': 5,
+    'f': 6,
+    'g': 7,
+    'h': 8,
+    'i': 9,
+    'j': 10,
+    'k': 11,
+    'l': 12,
+    'm': 13,
+    'n': 14,
+    'o': 15,
+    'p': 16,
+    'q': 17,
+    'r': 18,
+    's': 19,
+    't': 20,
+    'u': 21,
+    'v': 22,
+    'w': 23,
+    'x': 24,
+    'y': 25,
+    'z': 26,
+    '0': 27,
+    '1': 28,
+    '2': 29,
+    '3': 30,
+    '4': 31,
+    '5': 32,
+    '6': 33,
+    '7': 34,
+    '8': 35,
+    '9': 36,
+    '-': 37,
+    ',': 38,
+    ';': 39,
+    '.': 40,
+    '!': 41,
+    '?': 42,
+    ':': 43,
+    '*': 44,
+    '+': 45,
+    '-': 46,
+    '=': 47,
+    '<': 48,
+    '>': 49,
+    '(': 50,
+    ')': 51,
+    '[': 52,
+    ']': 53,
+    '{': 54,
+    '}': 55,
+    ']': 56,
+}
+
 
 def get_dataframe_from_csv(csv_path):
     infile = open(csv_path, 'rb')
@@ -73,6 +133,20 @@ def get_embeddings_lists(df, label):
     results_s1_array = np.array([x for x in results_s1[:]])
 
     return results_s1_array
+
+
+def get_encoding_for_sentence(sentence):
+    result = [[0] * len(ALPHABET)] * MAX_CHAR_SENTENCE_SIZE
+    for i in range(MAX_CHAR_SENTENCE_SIZE):
+        result[i][ALPHABET[sentence[i]] - 1] = 1
+    return result
+
+
+def get_char_encodings_dataframe(df, label):
+    results = df[label].apply(get_encoding_for_sentence)
+    results_array = np.array([x for x in results[:]])
+
+    return results_array
 
 
 def get_target_values(df):
@@ -132,10 +206,14 @@ def get_deeper_model(channels, dim_2, dim_3):
     return classification_model
 
 
-def train_and_test_model(ni, use_dev, df_test):
+def train_and_test_model(ni, use_dev, df_test, method):
     channels = 1
-    dim_2 = MAX_SIZE_SENTENCE
-    dim_3 = MAX_EMBEDDINGS_SIZE
+    if method == 'words':
+        dim_2 = MAX_SIZE_SENTENCE
+        dim_3 = MAX_EMBEDDINGS_SIZE
+    elif method == 'chars':
+        dim_2 = MAX_CHAR_SENTENCE_SIZE
+        dim_3 = len(ALPHABET)
 
     classification_model = get_model(channels, dim_2, dim_3)
 
@@ -177,10 +255,13 @@ def train_and_test_model(ni, use_dev, df_test):
             df_train = get_dataframe_from_csv(FULL_CSV_PATH_TRAIN_X)
             df_train = df_train[df_train.gold_label != '-']
             df_train.reindex(np.random.permutation(df_train.index))
-            df_train = df_train[:][:1000]
 
-            inputs_s1 = get_embeddings_lists(df_train, 'sentence1')
-            inputs_s2 = get_embeddings_lists(df_train, 'sentence2')
+            if method == 'words':
+                inputs_s1 = get_embeddings_lists(df_train, 'sentence1')
+                inputs_s2 = get_embeddings_lists(df_train, 'sentence2')
+            elif method == 'chars':
+                inputs_s1 = get_char_encodings_dataframe(df_train, 'sentence1')
+                inputs_s2 = get_char_encodings_dataframe(df_train, 'sentence2')
             labels = get_target_values(df_train)
             labels_binary = to_categorical(labels)
 
@@ -199,8 +280,12 @@ def train_and_test_model(ni, use_dev, df_test):
                 batch_size=100
             )
 
-    inputs_s1_test = get_embeddings_lists(df_test, 'sentence1')
-    inputs_s2_test = get_embeddings_lists(df_test, 'sentence2')
+    if method == 'words':
+        inputs_s1_test = get_embeddings_lists(df_test, 'sentence1')
+        inputs_s2_test = get_embeddings_lists(df_test, 'sentence2')
+    elif method == 'chars':
+        inputs_s1_test = get_char_encodings_dataframe(df_test, 'sentence1')
+        inputs_s2_test = get_char_encodings_dataframe(df_test, 'sentence2')
     labels_test = get_target_values(df_test)
     labels_test_binary = to_categorical(labels_test)
 
