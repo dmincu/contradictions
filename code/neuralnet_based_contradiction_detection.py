@@ -325,7 +325,7 @@ if __name__ == '__main__':
         )
         sys.exit(2)
 
-    method = 'cnn'
+    method = 'words'
     print_garbage = False
     use_file = False
     use_dev = False
@@ -376,7 +376,7 @@ if __name__ == '__main__':
     # )
     # print([MODEL[x] for x in 'this model hus everything'.split() if x in MODEL.vocab])
 
-    score = train_and_test_model(ni, use_dev, df_test)
+    score = train_and_test_model(ni, use_dev, df_test, method)
 
     # Close output file
     FILE.close()
