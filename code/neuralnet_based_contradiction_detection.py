@@ -24,7 +24,7 @@ FULL_MODEL_PATH_DEV = '../dataset/text8'
 
 FILE = sys.stdout
 
-MAX_SIZE_SENTENCE = 10
+MAX_SIZE_SENTENCE = 15
 MAX_EMBEDDINGS_SIZE = 200
 MODEL = None
 
@@ -79,8 +79,8 @@ def get_target_values(df):
     labels = {
         'contradiction': 0,
         'neutral': 1,
-        '-': 2,
-        'entailment': 3
+        '-': 3,
+        'entailment': 2
     }
     return df['gold_label'].apply(lambda x: labels[x]).values
 
@@ -101,7 +101,7 @@ def get_model(channels, dim_2, dim_3):
     out_b = contradiction_model(input_b)
 
     concatenated = merge([out_a, out_b], mode='concat')
-    out = Dense(4, activation='softmax')(concatenated)
+    out = Dense(3, activation='softmax')(concatenated)
 
     classification_model = Model([input_a, input_b], out)
 
@@ -125,7 +125,7 @@ def get_deeper_model(channels, dim_2, dim_3):
     out_b = contradiction_model(input_b)
 
     concatenated = merge([out_a, out_b], mode='concat')
-    out = Dense(4, activation='softmax')(concatenated)
+    out = Dense(3, activation='softmax')(concatenated)
 
     classification_model = Model([input_a, input_b], out)
 
@@ -148,7 +148,6 @@ def train_and_test_model(ni, use_dev, df_test):
 
     if use_dev:
         df_train = get_dataframe_from_csv(FULL_CSV_PATH_DEV)
-        df_train = df_train[:][:1000]
 
         inputs_s1 = get_embeddings_lists(df_train, 'sentence1')
         inputs_s2 = get_embeddings_lists(df_train, 'sentence2')
@@ -177,7 +176,6 @@ def train_and_test_model(ni, use_dev, df_test):
             df_train = get_dataframe_from_csv(FULL_CSV_PATH_TRAIN_X)
             df_train = df_train[df_train.gold_label != '-']
             df_train.reindex(np.random.permutation(df_train.index))
-            df_train = df_train[:][:1000]
 
             inputs_s1 = get_embeddings_lists(df_train, 'sentence1')
             inputs_s2 = get_embeddings_lists(df_train, 'sentence2')
