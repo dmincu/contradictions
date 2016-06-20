@@ -136,9 +136,11 @@ def get_embeddings_lists(df, label):
 
 
 def get_encoding_for_sentence(sentence):
+    sentence = sentence.lower()
     result = [[0] * len(ALPHABET)] * MAX_CHAR_SENTENCE_SIZE
     for i in range(MAX_CHAR_SENTENCE_SIZE):
-        result[i][ALPHABET[sentence[i]] - 1] = 1
+        if sentence[i] in ALPHABET:
+            result[i][ALPHABET[sentence[i]] - 1] = 1
     return result
 
 
