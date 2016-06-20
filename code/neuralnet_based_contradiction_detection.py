@@ -365,16 +365,16 @@ if __name__ == '__main__':
     df_test = df_test[df_test.gold_label != '-']
     df_test.reindex(np.random.permutation(df_test.index))
 
-    sentences = word2vec.Text8Corpus(FULL_MODEL_PATH_DEV)
-    MODEL = word2vec.Word2Vec(sentences, size=MAX_EMBEDDINGS_SIZE)
-    #sentences = [['first', 'sentence'], ['second', 'sentence']]
-    #MODEL = word2vec.Word2Vec()
-    #MODEL.build_vocab(sentences)
-    # MODEL = word2vec.Word2Vec.load_word2vec_format(
-    #    FULL_MODEL_PATH,
-    #    binary=True
-    # )
-    # print([MODEL[x] for x in 'this model hus everything'.split() if x in MODEL.vocab])
+    if method == 'words':
+        sentences = word2vec.Text8Corpus(FULL_MODEL_PATH_DEV)
+        MODEL = word2vec.Word2Vec(sentences, size=MAX_EMBEDDINGS_SIZE)
+        # sentences = [['first', 'sentence'], ['second', 'sentence']]
+        # MODEL = word2vec.Word2Vec()
+        # MODEL.build_vocab(sentences)
+        # MODEL = word2vec.Word2Vec.load_word2vec_format(
+        #    FULL_MODEL_PATH,
+        #    binary=True
+        # )
 
     score = train_and_test_model(ni, use_dev, df_test, method)
 
